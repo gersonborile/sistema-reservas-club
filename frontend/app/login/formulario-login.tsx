@@ -29,7 +29,7 @@ export function FormularioLogin() {
         setEnviando(false);
         return;
       }
-      router.push("/");
+      router.push(sesion.usuario.rol === "administrador" ? "/admin" : "/");
     } catch (error) {
       if (error instanceof ApiError) {
         setMensaje(error.message);

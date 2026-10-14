@@ -10,6 +10,8 @@ export type Cancha = {
   id: string;
   nombre: string;
   disciplina: Disciplina;
+  /** Indica si la cancha se ofrece a los socios para reservar. */
+  activa: boolean;
   imagenUrl?: string;
   estado: EstadoCancha;
 };
@@ -48,6 +50,11 @@ export type Reserva = {
 };
 
 const CLAVE_RESERVAS = "clubDeportivo.reservas";
+const CLAVE_CANCHAS = "clubDeportivo.canchas";
+const CLAVE_EQUIPAMIENTO = "clubDeportivo.equipamiento";
+
+/** Un ítem de equipamiento tiene "poco stock" cuando su stock total es 5 o menos. */
+export const UMBRAL_POCO_STOCK = 5;
 
 function generarId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -59,18 +66,21 @@ const canchasBase: Cancha[] = [
     id: "cancha-1",
     nombre: "Cancha 1",
     disciplina: "Tenis",
+    activa: true,
     estado: "disponible",
   },
   {
     id: "cancha-2",
     nombre: "Cancha 2",
     disciplina: "Fútbol 5",
+    activa: true,
     estado: "disponible",
   },
   {
     id: "cancha-3",
     nombre: "Cancha 3",
     disciplina: "Pádel",
+    activa: true,
     estado: "disponible",
   },
 ];
@@ -145,12 +155,65 @@ function guardarReservas(reservas: Reserva[]): void {
   }
 }
 
+function cargarCanchas(): Cancha[] {
+  if (typeof window === "undefined") {
+    return canchasBase.map((cancha) => ({ ...cancha }));
+  }
+  try {
+    const datos = window.localStorage.getItem(CLAVE_CANCHAS);
+    if (!datos) return canchasBase.map((cancha) => ({ ...cancha }));
+    const canchas = JSON.parse(datos) as Cancha[];
+    if (!Array.isArray(canchas)) {
+      return canchasBase.map((cancha) => ({ ...cancha }));
+    }
+    // Una cancha guardada sin el campo `activa` (datos viejos) se asume activa.
+    return canchas.map((cancha) => ({ ...cancha, activa: cancha.activa ?? true }));
+  } catch {
+    return canchasBase.map((cancha) => ({ ...cancha }));
+  }
+}
+
+function guardarCanchas(canchas: Cancha[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CLAVE_CANCHAS, JSON.stringify(canchas));
+  } catch {
+    // Si el almacenamiento no está disponible, no persistimos.
+  }
+}
+
+function cargarEquipamiento(): Equipamiento[] {
+  if (typeof window === "undefined") {
+    return equipamientoBase.map((item) => ({ ...item }));
+  }
+  try {
+    const datos = window.localStorage.getItem(CLAVE_EQUIPAMIENTO);
+    if (!datos) return equipamientoBase.map((item) => ({ ...item }));
+    const equipamiento = JSON.parse(datos) as Equipamiento[];
+    if (!Array.isArray(equipamiento)) {
+      return equipamientoBase.map((item) => ({ ...item }));
+    }
+    return equipamiento;
+  } catch {
+    return equipamientoBase.map((item) => ({ ...item }));
+  }
+}
+
+function guardarEquipamiento(equipamiento: Equipamiento[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CLAVE_EQUIPAMIENTO, JSON.stringify(equipamiento));
+  } catch {
+    // Si el almacenamiento no está disponible, no persistimos.
+  }
+}
+
 export function obtenerCanchas(filtros?: {
   disciplina?: Disciplina | "Todas";
   fecha?: string;
   hora?: string;
 }): Cancha[] {
-  let resultado = [...canchasBase];
+  let resultado = cargarCanchas().filter((cancha) => cancha.activa);
 
   if (filtros?.disciplina && filtros.disciplina !== "Todas") {
     resultado = resultado.filter(
@@ -161,13 +224,133 @@ export function obtenerCanchas(filtros?: {
   return resultado;
 }
 
+/** Devuelve una cancha aunque esté inactiva, para no romper reservas ya hechas. */
 export function obtenerCancha(id: string): Cancha | null {
-  return canchasBase.find((cancha) => cancha.id === id) ?? null;
+  return cargarCanchas().find((cancha) => cancha.id === id) ?? null;
+}
+
+/** Todas las canchas, activas e inactivas. La usa el panel de administración. */
+export function obtenerTodasLasCanchas(): Cancha[] {
+  return cargarCanchas();
 }
 
 export function obtenerEquipamiento(disciplina?: Disciplina): Equipamiento[] {
-  if (!disciplina) return [...equipamientoBase];
-  return equipamientoBase.filter((eq) => eq.disciplina === disciplina);
+  const equipamiento = cargarEquipamiento();
+  if (!disciplina) return equipamiento;
+  return equipamiento.filter((eq) => eq.disciplina === disciplina);
+}
+
+// Funciones de administración: mutan el catálogo persistido de canchas y
+// de equipamiento. El nombre de cancha es obligatorio y único sin distinguir
+// mayúsculas.
+
+function normalizarNombre(nombre: string): string {
+  return nombre.trim().toLowerCase();
+}
+
+function esNombreRepetido(nombre: string, idAApartar?: string): boolean {
+  const nombreNormalizado = normalizarNombre(nombre);
+  return cargarCanchas().some(
+    (cancha) =>
+      cancha.id !== idAApartar &&
+      normalizarNombre(cancha.nombre) === nombreNormalizado
+  );
+}
+
+function validarStock(stockTotal: number): void {
+  if (!Number.isInteger(stockTotal) || stockTotal < 0) {
+    throw new Error("El stock debe ser un entero mayor o igual a 0.");
+  }
+}
+
+export function crearCancha(datos: {
+  nombre: string;
+  disciplina: Disciplina;
+}): Cancha {
+  const nombre = datos.nombre.trim();
+  if (!nombre) {
+    throw new Error("El nombre es obligatorio.");
+  }
+  if (esNombreRepetido(nombre)) {
+    throw new Error("Ya existe una cancha con ese nombre.");
+  }
+
+  const canchas = cargarCanchas();
+  const cancha: Cancha = {
+    id: generarId(),
+    nombre,
+    disciplina: datos.disciplina,
+    activa: true,
+    estado: "disponible",
+  };
+  guardarCanchas([...canchas, cancha]);
+  return cancha;
+}
+
+export function editarCancha(
+  id: string,
+  datos: { nombre: string; disciplina: Disciplina }
+): Cancha {
+  const canchas = cargarCanchas();
+  const indice = canchas.findIndex((cancha) => cancha.id === id);
+  if (indice === -1) {
+    throw new Error("Cancha no encontrada.");
+  }
+
+  const nombre = datos.nombre.trim();
+  if (!nombre) {
+    throw new Error("El nombre es obligatorio.");
+  }
+  if (esNombreRepetido(nombre, id)) {
+    throw new Error("Ya existe una cancha con ese nombre.");
+  }
+
+  const editada: Cancha = {
+    ...canchas[indice],
+    nombre,
+    disciplina: datos.disciplina,
+  };
+  canchas[indice] = editada;
+  guardarCanchas(canchas);
+  return editada;
+}
+
+export function cambiarActivaCancha(id: string, activa: boolean): Cancha {
+  const canchas = cargarCanchas();
+  const indice = canchas.findIndex((cancha) => cancha.id === id);
+  if (indice === -1) {
+    throw new Error("Cancha no encontrada.");
+  }
+
+  const actualizada: Cancha = { ...canchas[indice], activa };
+  canchas[indice] = actualizada;
+  guardarCanchas(canchas);
+  return actualizada;
+}
+
+export function actualizarStockEquipamiento(
+  id: string,
+  stockTotal: number
+): Equipamiento {
+  validarStock(stockTotal);
+
+  const equipamiento = cargarEquipamiento();
+  const indice = equipamiento.findIndex((item) => item.id === id);
+  if (indice === -1) {
+    throw new Error("Equipamiento no encontrado.");
+  }
+
+  const actual = equipamiento[indice];
+  // El stock disponible se mueve con la misma diferencia que el total, sin bajar de 0.
+  const diferencia = stockTotal - actual.stockTotal;
+  const actualizado: Equipamiento = {
+    ...actual,
+    stockTotal,
+    stockDisponible: Math.max(0, actual.stockDisponible + diferencia),
+  };
+  equipamiento[indice] = actualizado;
+  guardarEquipamiento(equipamiento);
+  return actualizado;
 }
 
 export type DatosCrearReserva = {

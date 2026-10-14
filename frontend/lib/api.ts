@@ -28,6 +28,21 @@ const LATENCIA_MOCK_MS = 300;
 const TTL_TOKEN_SEGUNDOS = 60 * 60 * 8;
 const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Administrador semilla del mock. Siempre existe en el login aunque no haya
+ * usuarios registrados. Es solo para desarrollo y se retira con el backend.
+ * Su id (`admin-1`) no sigue el patrón `usr_...` del registro, así nunca
+ * choca con los ids que genera `registrar()`.
+ */
+const ADMIN_SEMILLA: UsuarioGuardado = {
+  id: "admin-1",
+  nombre: "Admin",
+  contacto: "",
+  email: "admin@club.com",
+  contrasena: "admin123",
+  rol: "administrador",
+};
+
 function esperar(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, LATENCIA_MOCK_MS));
 }
@@ -44,7 +59,7 @@ function normalizarEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function leerUsuariosMock(): UsuarioGuardado[] {
+function leerUsuariosRegistrados(): UsuarioGuardado[] {
   try {
     const crudo = window.localStorage.getItem(CLAVE_USUARIOS_MOCK);
     if (!crudo) return [];
@@ -53,6 +68,11 @@ function leerUsuariosMock(): UsuarioGuardado[] {
   } catch {
     return [];
   }
+}
+
+/** Usuarios del mock: el administrador semilla y los registrados. */
+function leerUsuariosMock(): UsuarioGuardado[] {
+  return [ADMIN_SEMILLA, ...leerUsuariosRegistrados()];
 }
 
 function escribirUsuariosMock(usuarios: UsuarioGuardado[]): void {
@@ -104,15 +124,17 @@ export async function registrar(datos: DatosRegistro): Promise<UsuarioPublico> {
 
   await esperar();
 
-  const usuarios = leerUsuariosMock();
+  const registrados = leerUsuariosRegistrados();
   const email = normalizarEmail(datos.email);
-  if (usuarios.some((usuario) => normalizarEmail(usuario.email) === email)) {
+  // Se compara contra todos los usuarios del mock (incluye al administrador
+  // semilla), así nadie puede registrarse con su email.
+  if (leerUsuariosMock().some((usuario) => normalizarEmail(usuario.email) === email)) {
     const mensaje = "El email ya está en uso.";
     throw new ApiError(409, mensaje, [{ campo: "email", mensaje }]);
   }
 
   const usuario: UsuarioGuardado = {
-    id: `usr_${usuarios.length + 1}`,
+    id: `usr_${registrados.length + 1}`,
     nombre: datos.nombre.trim(),
     contacto: datos.contacto.trim(),
     email,
@@ -120,7 +142,7 @@ export async function registrar(datos: DatosRegistro): Promise<UsuarioPublico> {
     rol: "usuario",
   };
 
-  escribirUsuariosMock([...usuarios, usuario]);
+  escribirUsuariosMock([...registrados, usuario]);
   return aUsuarioPublico(usuario);
 }
 
