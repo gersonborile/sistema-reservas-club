@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { leerClaims, leerToken } from "@/lib/sesion";
-import Navbar from "@/app/componentes/navbar";
+import ShellSocio from "@/app/componentes/shell-socio";
 
 export default function LayoutProtegido({
   children,
@@ -40,10 +40,5 @@ export default function LayoutProtegido({
     return null;
   }
 
-  return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      <main className="flex-1 bg-neutral-50">{children}</main>
-    </div>
-  );
+  return <ShellSocio>{children}</ShellSocio>;
 }
