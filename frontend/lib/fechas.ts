@@ -8,6 +8,8 @@ const DIAS = [
   "Sábado",
 ];
 
+const DIAS_ABBREV = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+
 function parsearFecha(fecha: string): Date | null {
   const [anio, mes, dia] = fecha.split("-").map(Number);
   if (!anio || !mes || !dia) return null;
@@ -30,6 +32,13 @@ export function formatearFecha(fecha: string): string {
   const dia = String(date.getDate()).padStart(2, "0");
   const mes = String(date.getMonth() + 1).padStart(2, "0");
   return `${dia}/${mes}`;
+}
+
+/** Fecha corta con día abreviado ("Mié 07/10"); devuelve el valor original si no es válida. */
+export function formatearFechaAbreviada(fecha: string): string {
+  const date = parsearFecha(fecha);
+  if (!date) return fecha;
+  return `${DIAS_ABBREV[date.getDay()]} ${formatearFecha(fecha)}`;
 }
 
 /** Nombre del día de la semana en español; cadena vacía si la fecha no es válida. */

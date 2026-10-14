@@ -204,6 +204,60 @@ export function crearReserva(datos: DatosCrearReserva): Reserva {
   return reserva;
 }
 
+const MILIS_POR_HORA = 60 * 60 * 1000;
+const HORAS_ANTICIPACION_CANCELACION = 2;
+
+function inicioTurno(reserva: Reserva): Date | null {
+  const [anio, mes, dia] = reserva.fecha.split("-").map(Number);
+  const [hora, minutos] = reserva.hora.split(":").map(Number);
+  if (!anio || !mes || !dia || Number.isNaN(hora)) return null;
+  return new Date(anio, mes - 1, dia, hora, Number.isNaN(minutos) ? 0 : minutos);
+}
+
+export function puedeCancelar(reserva: Reserva, ahora: Date): boolean {
+  if (reserva.estado !== "confirmada" && reserva.estado !== "pendiente") {
+    return false;
+  }
+  const inicio = inicioTurno(reserva);
+  if (!inicio) return false;
+  return (
+    inicio.getTime() - ahora.getTime() >=
+    HORAS_ANTICIPACION_CANCELACION * MILIS_POR_HORA
+  );
+}
+
+export function obtenerReservasDeUsuario(usuarioId: string): Reserva[] {
+  const reservas = cargarReservas().filter((r) => r.usuarioId === usuarioId);
+  reservas.sort((a, b) => {
+    if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+    if (a.hora !== b.hora) return a.hora < b.hora ? -1 : 1;
+    return 0;
+  });
+  return reservas;
+}
+
+export function cancelarReserva(id: string, usuarioId: string): Reserva {
+  const reservas = cargarReservas();
+  const reserva = reservas.find((r) => r.id === id);
+  if (!reserva) {
+    throw new Error("Reserva no encontrada");
+  }
+  if (reserva.usuarioId !== usuarioId) {
+    throw new Error("La reserva no pertenece a este usuario");
+  }
+  if (reserva.estado === "cancelada") {
+    throw new Error("La reserva ya está cancelada");
+  }
+  if (!puedeCancelar(reserva, new Date())) {
+    throw new Error(
+      "No se puede cancelar: faltan menos de 2 horas para el turno"
+    );
+  }
+  reserva.estado = "cancelada";
+  guardarReservas(reservas);
+  return reserva;
+}
+
 export function obtenerProximaReserva(usuarioId?: string): Reserva | null {
   const reservas = cargarReservas();
   let resultado = reservas.filter(

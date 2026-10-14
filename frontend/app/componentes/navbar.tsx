@@ -86,13 +86,16 @@ export default function Navbar() {
           >
             Canchas
           </Link>
-          <button
-            type="button"
-            className="text-sm text-neutral-600 hover:text-neutral-900 cursor-default"
-            disabled
+          <Link
+            href="/reservas"
+            className={`text-sm ${
+              esLinkActivo("/reservas")
+                ? "text-neutral-900 underline underline-offset-4"
+                : "text-neutral-600 hover:text-neutral-900"
+            }`}
           >
             Mis reservas
-          </button>
+          </Link>
         </div>
 
         <div className="relative" ref={menuRef}>
