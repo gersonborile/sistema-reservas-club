@@ -4,14 +4,14 @@ El sistema de reservas del club necesita que las canchas (tenis, fútbol, pádel
 
 ## What Changes
 
-- Crear el backend NestJS con el primer módulo funcional: **Canchas** (este cambio incluye el scaffold inicial del proyecto `backend/`).
+- Crear el módulo funcional **Canchas** en el backend NestJS ya existente en `backend/` (el scaffold, Prisma y el módulo de auth provienen del cambio `auth-registro-login`, ya mergeado).
 - Modelo de datos con Prisma/PostgreSQL para las entidades `Cancha` y `Disciplina`, con seed de disciplinas fijas (tenis, fútbol, pádel).
 - API REST CRUD de canchas:
   - `GET /canchas` — listar canchas (público, lectura, con filtros por disciplina y estado).
   - `GET /canchas/:id` — detalle de una cancha (público, lectura).
-  - `POST /canchas`, `PATCH /canchas/:id`, `DELETE /canchas/:id` — solo administrador.
+  - `POST /canchas`, `PUT /canchas/:id`, `DELETE /canchas/:id` — solo administrador.
 - Reglas de negocio: las canchas solo pueden tener los estados "disponible", "ocupada" y "en mantenimiento"; no se puede eliminar una cancha que tiene turnos o reservas activas asociados.
-- Dependencia con el cambio `auth-registro-login`: la autorización administrativa depende del rol `tipo` del usuario autenticado. Este cambio define los requisitos de autorización y deja documentada la dependencia; se integra con el mecanismo de auth cuando dicho cambio lo provea.
+- **Dependencia con el cambio `auth-registro-login` (ya resuelta)**: la autorización administrativa se apoya en los guards y decoradores mergeados y en el enum `RolUsuario` de Prisma (`@Roles(RolUsuario.ADMINISTRADOR)` en las mutaciones, `@Public()` en las lecturas).
 - **BREAKING**: no aplica — no existe código previo.
 
 ## Capabilities
@@ -27,6 +27,6 @@ El sistema de reservas del club necesita que las canchas (tenis, fútbol, pádel
 - **Repositorio**: se crea el directorio `backend/` (NestJS + TypeScript + Prisma) tal como define la estructura de monorepo en `openspec/config.yaml`.
 - **Base de datos**: nuevas tablas `Cancha` (con relación many-to-many a `Disciplina`) y `Disciplina`, creadas vía migración de Prisma; seed de disciplinas.
 - **API**: endpoints REST de canchas con autorización admin-only en las mutaciones.
-- **Dependencias**: `@nestjs/*`, `prisma`/`@prisma/client`, `class-validator`/`class-transformer`, `jest`, `supertest` en el backend.
+- **Dependencias**: ninguna nueva — `@nestjs/*`, `prisma`/`@prisma/client`, `class-validator`/`class-transformer`, `vitest` y `supertest` ya están en el backend.
 - **OpenSpec**: nueva capability `specs/canchas/spec.md`.
 - **Fuera de alcance**: reservas/turnos, disponibilidad, frontend, gestión de disciplinas (solo seed), gestión de equipamiento, pagos, y el mecanismo de autenticación en sí (dependencia externa documentada).

@@ -37,10 +37,12 @@ El sistema SHALL permitir listar las canchas del club con sus disciplinas y esta
 
 El sistema SHALL permitir al administrador crear una cancha con nombre, ubicación, capacidad, estado y al menos una disciplina existente.
 
+El body acepta `nombre`, `ubicacion`, `capacidad`, `estado` y `disciplinaIds`. Las disciplinas se referencian por sus identificadores UUID (`disciplinaIds`, lista no vacía); el `estado` usa los valores del enumerado del sistema: `DISPONIBLE`, `OCUPADA` o `EN_MANTENIMIENTO`.
+
 #### Scenario: Crear una cancha válida
 
-- **WHEN** un administrador envía `POST /canchas` con un `nombre` no duplicado, `ubicacion`, `capacidad` mayor que 0, un `estado` válido y al menos una `disciplina` existente
-- **THEN** el sistema responde 201 con la cancha creada, incluyendo su `id`
+- **WHEN** un administrador envía `POST /canchas` con un `nombre` no duplicado, `ubicacion`, `capacidad` mayor que 0, un `estado` válido y al menos una disciplina existente en `disciplinaIds`
+- **THEN** el sistema responde 201 con la cancha creada, incluyendo su `id` y sus `disciplinas`
 
 #### Scenario: Crear cancha con nombre duplicado
 
@@ -49,26 +51,26 @@ El sistema SHALL permitir al administrador crear una cancha con nombre, ubicaci�
 
 #### Scenario: Crear cancha con datos inválidos
 
-- **WHEN** un administrador envía `POST /canchas` sin `nombre`, con `capacidad` menor o igual a 0, con un `estado` fuera del conjunto permitido, o sin ninguna `disciplina`
+- **WHEN** un administrador envía `POST /canchas` sin `nombre`, con `capacidad` menor o igual a 0, con un `estado` fuera del conjunto permitido, sin ninguna disciplina en `disciplinaIds`, o con un `disciplinaIds` que no sea una lista de UUIDs
 - **THEN** el sistema responde 400 y no crea la cancha
 
 #### Scenario: Crear cancha con disciplina inexistente
 
-- **WHEN** un administrador envía `POST /canchas` referenciando una disciplina que no existe en el sistema
+- **WHEN** un administrador envía `POST /canchas` con `disciplinaIds` que incluye un UUID que no corresponde a una disciplina del sistema
 - **THEN** el sistema responde 422 y no crea la cancha
 
 ### Requirement: Modificar cancha
 
-El sistema SHALL permitir al administrador modificar los datos de una cancha existente, aplicando las mismas validaciones que en la creación.
+El sistema SHALL permitir al administrador modificar los datos de una cancha existente mediante `PUT /canchas/:id`, aplicando las mismas validaciones que en la creación sobre los campos enviados (la actualización es parcial: los campos no enviados se conservan).
 
 #### Scenario: Modificar una cancha existente
 
-- **WHEN** un administrador envía `PATCH /canchas/:id` con datos válidos para una cancha existente
+- **WHEN** un administrador envía `PUT /canchas/:id` con datos válidos para una cancha existente
 - **THEN** el sistema responde 200 con la cancha actualizada
 
 #### Scenario: Modificar cancha inexistente
 
-- **WHEN** un administrador envía `PATCH /canchas/:id` con un id que no existe
+- **WHEN** un administrador envía `PUT /canchas/:id` con un id que no existe
 - **THEN** el sistema responde 404
 
 #### Scenario: Modificar con nombre duplicado
@@ -78,7 +80,7 @@ El sistema SHALL permitir al administrador modificar los datos de una cancha exi
 
 ### Requirement: Dar de baja cancha
 
-El sistema SHALL permitir al administrador eliminar una cancha siempre que no tenga turnos ni reservas activas asociados.
+El sistema SHALL permitir al administrador eliminar una cancha siempre que no tenga turnos (y por lo tanto reservas) asociados. El backend responde 409 —nunca un error interno— cuando la base de datos restringe el borrado por las referencias existentes.
 
 #### Scenario: Eliminar cancha sin referencias activas
 
@@ -115,7 +117,7 @@ El sistema SHALL requerir un usuario autenticado con rol administrador para crea
 
 #### Scenario: Cliente sin autenticación intenta mutar
 
-- **WHEN** un cliente no autenticado envía `POST /canchas`, `PATCH /canchas/:id` o `DELETE /canchas/:id`
+- **WHEN** un cliente no autenticado envía `POST /canchas`, `PUT /canchas/:id` o `DELETE /canchas/:id`
 - **THEN** el sistema responde 401 sin realizar la operación
 
 #### Scenario: Usuario autenticado sin rol administrador intenta mutar
