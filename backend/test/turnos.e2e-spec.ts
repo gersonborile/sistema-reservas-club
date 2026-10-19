@@ -1,10 +1,12 @@
 import { randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { Test, type TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import type { App } from 'supertest/types.js';
 import { AppModule } from '../src/app.module.js';
 import { validationPipe } from '../src/comun/validation-pipe.js';
+import { RolUsuario } from '../src/generated/prisma/client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 
 process.env.JWT_SECRET ??= 'secreto-de-prueba-e2e-no-usar-en-produccion';
@@ -41,12 +43,21 @@ function fechaUtc(iso: string): Date {
 
 describe('Turnos (e2e)', () => {
   let app: INestApplication<App>;
+  let jwtService: JwtService;
   let turnos: Map<string, FilaTurno>;
   let canchas: Map<string, { id: string }>;
   let disciplinas: Map<string, { id: string }>;
   let prismaMock: Record<string, unknown>;
 
   const server = () => app.getHttpServer();
+
+  async function tokenAdmin(): Promise<string> {
+    return jwtService.signAsync({
+      userId: 'admin-e2e',
+      email: 'admin-turnos@clubdeportivo.test',
+      rol: RolUsuario.ADMINISTRADOR,
+    });
+  }
 
   function sembrarTurno(fila: Omit<FilaTurno, 'id'> & { id: string }): void {
     turnos.set(fila.id, fila);
@@ -155,11 +166,17 @@ describe('Turnos (e2e)', () => {
             where.id !== undefined ? (turnos.get(where.id) ?? null) : null,
           ),
         ),
-        create: vi.fn(({ data }: { data: Omit<FilaTurno, 'id'> }) => {
-          const creado: FilaTurno = { id: randomUUID(), ...data };
-          turnos.set(creado.id, creado);
-          return Promise.resolve(creado);
-        }),
+        create: vi.fn(
+          ({ data }: { data: Omit<FilaTurno, 'id' | 'disponible'> }) => {
+            const creado: FilaTurno = {
+              id: randomUUID(),
+              disponible: true,
+              ...data,
+            };
+            turnos.set(creado.id, creado);
+            return Promise.resolve(creado);
+          },
+        ),
         update: vi.fn(
           ({
             where,
@@ -195,6 +212,7 @@ describe('Turnos (e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(validationPipe);
     await app.init();
+    jwtService = app.get(JwtService);
   });
 
   afterEach(async () => {
@@ -316,6 +334,356 @@ describe('Turnos (e2e)', () => {
 
     it('404: id con formato inválido', async () => {
       await request(server()).get('/turnos/no-es-un-uuid').expect(404);
+    });
+  });
+
+  describe('GET /disponibilidad', () => {
+    it('200: devuelve solo los turnos disponibles de la cancha y fecha', async () => {
+      const respuesta = await request(server())
+        .get(`/disponibilidad?cancha_id=${CANCHA_TENIS}&fecha=${enDias(3)}`)
+        .expect(200);
+
+      expect(
+        respuesta.body.map((turno: { id: string }) => turno.id).sort(),
+      ).toEqual([TURNO_TENIS_1, TURNO_TENIS_2].sort());
+      expect(
+        respuesta.body.every(
+          (turno: { disponible: boolean }) => turno.disponible === true,
+        ),
+      ).toBe(true);
+    });
+
+    it('200: lista vacía cuando la cancha no tiene turnos ese día', async () => {
+      const respuesta = await request(server())
+        .get(`/disponibilidad?cancha_id=${CANCHA_TENIS}&fecha=${enDias(6)}`)
+        .expect(200);
+
+      expect(respuesta.body).toEqual([]);
+    });
+
+    it('200: lista vacía cuando todos los turnos están reservados', async () => {
+      const respuesta = await request(server())
+        .get(`/disponibilidad?cancha_id=${CANCHA_PADEL}&fecha=${enDias(4)}`)
+        .expect(200);
+
+      expect(respuesta.body).toEqual([]);
+    });
+
+    it('404: cancha inexistente', async () => {
+      const respuesta = await request(server())
+        .get(`/disponibilidad?cancha_id=${randomUUID()}&fecha=${enDias(3)}`)
+        .expect(404);
+
+      expect(respuesta.body).toEqual({
+        message: 'La cancha indicada no existe.',
+        error: 'Not Found',
+        statusCode: 404,
+      });
+    });
+
+    it('400: sin cancha_id', async () => {
+      await request(server())
+        .get(`/disponibilidad?fecha=${enDias(3)}`)
+        .expect(400);
+    });
+
+    it('400: sin fecha', async () => {
+      await request(server())
+        .get(`/disponibilidad?cancha_id=${CANCHA_TENIS}`)
+        .expect(400);
+    });
+
+    it('400: con fecha inválida', async () => {
+      await request(server())
+        .get(`/disponibilidad?cancha_id=${CANCHA_TENIS}&fecha=no-es-fecha`)
+        .expect(400);
+    });
+  });
+
+  describe('POST /turnos', () => {
+    function cuerpoValido() {
+      return {
+        cancha_id: CANCHA_TENIS,
+        disciplina_id: DISCIPLINA_TENIS,
+        fecha: enDias(2),
+        hora_inicio: '11:00',
+        hora_fin: '12:00',
+      };
+    }
+
+    it('201: crea un turno válido con su id y disponible', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send(cuerpoValido())
+        .expect(201);
+
+      expect(respuesta.body).toMatchObject({
+        cancha_id: CANCHA_TENIS,
+        disciplina_id: DISCIPLINA_TENIS,
+        fecha: enDias(2),
+        hora_inicio: '11:00',
+        hora_fin: '12:00',
+        disponible: true,
+      });
+      expect(typeof respuesta.body.id).toBe('string');
+      expect(turnos.size).toBe(4);
+    });
+
+    it('422: cancha inexistente', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), cancha_id: randomUUID() })
+        .expect(422);
+
+      expect(respuesta.body.message).toBe('La cancha indicada no existe.');
+      expect(turnos.size).toBe(3);
+    });
+
+    it('422: disciplina inexistente', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), disciplina_id: randomUUID() })
+        .expect(422);
+
+      expect(respuesta.body.message).toBe('La disciplina indicada no existe.');
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: hora_fin igual a hora_inicio', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), hora_fin: '11:00' })
+        .expect(400);
+
+      expect(respuesta.body.message).toBe(
+        'La hora de fin debe ser posterior a la hora de inicio.',
+      );
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: hora_fin anterior a hora_inicio', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), hora_fin: '10:00' })
+        .expect(400);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: fecha pasada', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), fecha: enDias(-1) })
+        .expect(400);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('409: turno superpuesto en la misma cancha y fecha', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          ...cuerpoValido(),
+          fecha: enDias(3),
+          hora_inicio: '08:30',
+          hora_fin: '09:30',
+        })
+        .expect(409);
+
+      expect(respuesta.body.message).toBe(
+        'Ya existe un turno superpuesto en esa cancha y fecha.',
+      );
+      expect(turnos.size).toBe(3);
+    });
+
+    it('201: acepta turnos contiguos sin superposición', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          ...cuerpoValido(),
+          fecha: enDias(3),
+          hora_inicio: '10:00',
+          hora_fin: '11:00',
+        })
+        .expect(201);
+    });
+
+    it('400: datos faltantes', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+        .expect(400);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: hora con formato inválido', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), hora_inicio: '25:00' })
+        .expect(400);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: cancha_id con formato inválido', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), cancha_id: 'no-es-un-uuid' })
+        .expect(400);
+
+      expect(turnos.size).toBe(3);
+    });
+  });
+
+  describe('PATCH /turnos/:id', () => {
+    it('200: modifica un turno existente sin superposición', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .patch(`/turnos/${TURNO_TENIS_2}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '10:00', hora_fin: '11:00' })
+        .expect(200);
+
+      expect(respuesta.body).toMatchObject({
+        id: TURNO_TENIS_2,
+        hora_inicio: '10:00',
+        hora_fin: '11:00',
+      });
+      expect(turnos.get(TURNO_TENIS_2)?.horaInicio).toBe('10:00');
+    });
+
+    it('200: no considera superpuesto al propio turno', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '08:00', hora_fin: '09:00' })
+        .expect(200);
+    });
+
+    it('404: turno inexistente', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${randomUUID()}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '10:00' })
+        .expect(404);
+    });
+
+    it('409: modificación que genera superposición', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_2}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '08:30', hora_fin: '09:30' })
+        .expect(409);
+
+      expect(turnos.get(TURNO_TENIS_2)?.horaInicio).toBe('09:00');
+    });
+
+    it('400: hora_fin inválida', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '10:00', hora_fin: '09:00' })
+        .expect(400);
+    });
+
+    it('400: fecha pasada', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ fecha: enDias(-1) })
+        .expect(400);
+    });
+
+    it('422: disciplina inexistente', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ disciplina_id: randomUUID() })
+        .expect(422);
+    });
+  });
+
+  describe('DELETE /turnos/:id', () => {
+    it('204: elimina un turno sin reserva activa', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .delete(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(204);
+
+      expect(turnos.has(TURNO_TENIS_1)).toBe(false);
+      await request(server()).get(`/turnos/${TURNO_TENIS_1}`).expect(404);
+    });
+
+    it('404: turno inexistente', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .delete(`/turnos/${randomUUID()}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(404);
+    });
+
+    it('409: turno con reserva activa', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .delete(`/turnos/${TURNO_PADEL}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(409);
+
+      expect(respuesta.body.message).toBe(
+        'El turno tiene una reserva activa y no puede eliminarse.',
+      );
+      expect(turnos.has(TURNO_PADEL)).toBe(true);
     });
   });
 });

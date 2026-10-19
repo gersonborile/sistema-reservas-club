@@ -18,10 +18,10 @@
 
 ## 4. Mutaciones de turnos (admin)
 
-- [ ] 4.1 Crear `CrearTurnoDto` y `ActualizarTurnoDto` (parcial) con `class-validator` (UUID de referencias, `fecha` ISO, horas válidas) y verificar que el `ValidationPipe` rechaza payloads inválidos con 400
-- [ ] 4.2 Implementar `POST /turnos` en el servicio (validar existencia de cancha/disciplina → 422, `hora_fin` > `hora_inicio` y fecha no pasada → 400, superposición con turnos existentes → 409) y verificar cada caso con tests e2e
-- [ ] 4.3 Implementar `PATCH /turnos/:id` (mismas validaciones excluyendo el propio turno de la comparación de superposición; 404 si no existe) y verificar con tests e2e
-- [ ] 4.4 Implementar `DELETE /turnos/:id` (204 si `disponible = true`, 404 si no existe, 409 si `disponible = false` por reserva activa) y verificar con tests e2e
+- [x] 4.1 Crear `CrearTurnoDto` y `ActualizarTurnoDto` (parcial) con `class-validator` (UUID de referencias, `fecha` ISO, horas válidas) y verificar que el `ValidationPipe` rechaza payloads inválidos con 400
+- [x] 4.2 Implementar `POST /turnos` en el servicio (validar existencia de cancha/disciplina → 422, `hora_fin` > `hora_inicio` y fecha no pasada → 400, superposición con turnos existentes → 409) y verificar cada caso con tests e2e
+- [x] 4.3 Implementar `PATCH /turnos/:id` (mismas validaciones excluyendo el propio turno de la comparación de superposición; 404 si no existe) y verificar con tests e2e
+- [x] 4.4 Implementar `DELETE /turnos/:id` (204 si `disponible = true`, 404 si no existe, 409 si `disponible = false` por reserva activa) y verificar con tests e2e
 
 ## 5. Autorización admin-only
 
