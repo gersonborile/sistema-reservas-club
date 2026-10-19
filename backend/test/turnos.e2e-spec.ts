@@ -540,6 +540,16 @@ describe('Turnos (e2e)', () => {
         .expect(201);
     });
 
+    it('201: acepta un turno para la fecha de hoy', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), fecha: enDias(0) })
+        .expect(201);
+    });
+
     it('400: datos faltantes', async () => {
       const token = await tokenAdmin();
 
@@ -692,6 +702,7 @@ describe('Turnos (e2e)', () => {
         'El turno tiene una reserva activa y no puede eliminarse.',
       );
       expect(turnos.has(TURNO_PADEL)).toBe(true);
+      await request(server()).get(`/turnos/${TURNO_PADEL}`).expect(200);
     });
   });
 

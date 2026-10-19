@@ -199,7 +199,11 @@ export class TurnosService {
     rango: RangoHorario,
     excluirId?: string,
   ): Promise<void> {
-    const existentes = await this.prisma.turno.findMany({
+    const existentes: Array<{
+      id: string;
+      horaInicio: string;
+      horaFin: string;
+    }> = await this.prisma.turno.findMany({
       where: { canchaId, fecha },
       select: { id: true, horaInicio: true, horaFin: true },
     });

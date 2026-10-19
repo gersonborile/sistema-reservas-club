@@ -30,5 +30,5 @@
 
 ## 6. Calidad y cierre
 
-- [ ] 6.1 Correr el suite completo (`npm run lint`, `npm run test:e2e`) y verificar que pasa en verde
-- [ ] 6.2 Revisar que los tests e2e cubren cada escenario del spec `specs/turnos-franjas/spec.md` y agregar los faltantes (verificar cobertura escenario a escenario)
+- [x] 6.1 Correr el suite completo (`npm run lint`, `npm run test:e2e`) y verificar que pasa en verde
+- [x] 6.2 Revisar que los tests e2e cubren cada escenario del spec `specs/turnos-franjas/spec.md` y agregar los faltantes (verificar cobertura escenario a escenario)
