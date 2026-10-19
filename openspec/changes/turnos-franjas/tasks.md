@@ -25,8 +25,8 @@
 
 ## 5. Autorización admin-only
 
-- [ ] 5.1 Montar `@Roles('admin')` + `AuthzGuard` (mismo seam `AuthPrincipalProvider` que canchas) sobre `POST/PATCH/DELETE /turnos` y verificar que el guard aplica en esas rutas
-- [ ] 5.2 Verificar con tests e2e que las mutaciones sin principal → 401 y con rol distinto a `admin` → 403, y que `GET /turnos*` y `GET /disponibilidad` siguen accesibles sin autenticación
+- [x] 5.1 Montar `@Roles('admin')` + `AuthzGuard` (mismo seam `AuthPrincipalProvider` que canchas) sobre `POST/PATCH/DELETE /turnos` y verificar que el guard aplica en esas rutas
+- [x] 5.2 Verificar con tests e2e que las mutaciones sin principal → 401 y con rol distinto a `admin` → 403, y que `GET /turnos*` y `GET /disponibilidad` siguen accesibles sin autenticación
 
 ## 6. Calidad y cierre
 

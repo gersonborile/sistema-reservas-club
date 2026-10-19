@@ -59,6 +59,14 @@ describe('Turnos (e2e)', () => {
     });
   }
 
+  async function tokenUsuario(): Promise<string> {
+    return jwtService.signAsync({
+      userId: 'socio-e2e',
+      email: 'socio-turnos@clubdeportivo.test',
+      rol: RolUsuario.USUARIO,
+    });
+  }
+
   function sembrarTurno(fila: Omit<FilaTurno, 'id'> & { id: string }): void {
     turnos.set(fila.id, fila);
   }
@@ -684,6 +692,91 @@ describe('Turnos (e2e)', () => {
         'El turno tiene una reserva activa y no puede eliminarse.',
       );
       expect(turnos.has(TURNO_PADEL)).toBe(true);
+    });
+  });
+
+  describe('Autorización de mutaciones y lectura pública', () => {
+    const cuerpo = () => ({
+      cancha_id: CANCHA_TENIS,
+      disciplina_id: DISCIPLINA_TENIS,
+      fecha: enDias(2),
+      hora_inicio: '11:00',
+      hora_fin: '12:00',
+    });
+
+    it('401: sin token no puede crear, modificar ni eliminar', async () => {
+      await request(server()).post('/turnos').send(cuerpo()).expect(401);
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .send({ hora_inicio: '10:00' })
+        .expect(401);
+      await request(server())
+        .delete(`/turnos/${TURNO_TENIS_1}`)
+        .expect(401);
+
+      expect(turnos.size).toBe(3);
+      expect(turnos.get(TURNO_TENIS_1)?.horaInicio).toBe('08:00');
+    });
+
+    it('401: con token inválido no puede crear', async () => {
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', 'Bearer token.invalido.aqui')
+        .send(cuerpo())
+        .expect(401);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('403: un usuario sin rol administrador no puede crear, modificar ni eliminar', async () => {
+      const token = await tokenUsuario();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send(cuerpo())
+        .expect(403);
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '10:00' })
+        .expect(403);
+      await request(server())
+        .delete(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403);
+
+      expect(turnos.size).toBe(3);
+      expect(turnos.get(TURNO_TENIS_1)?.horaInicio).toBe('08:00');
+    });
+
+    it('200: las consultas siguen accesibles sin autenticación', async () => {
+      await request(server()).get('/turnos').expect(200);
+      await request(server()).get(`/turnos/${TURNO_TENIS_1}`).expect(200);
+      await request(server())
+        .get(`/disponibilidad?cancha_id=${CANCHA_TENIS}&fecha=${enDias(3)}`)
+        .expect(200);
+    });
+
+    it('201/200/204: el administrador autenticado puede mutar', async () => {
+      const token = await tokenAdmin();
+
+      const creado = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send(cuerpo())
+        .expect(201);
+
+      await request(server())
+        .patch(`/turnos/${creado.body.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_fin: '13:00' })
+        .expect(200);
+
+      await request(server())
+        .delete(`/turnos/${creado.body.id}`)
+        .set('Authorization', `Bearer ${token}`)
+        .expect(204);
     });
   });
 });
