@@ -1,9 +1,9 @@
 ## 1. Modelo de datos del Turno
 
-- [ ] 1.1 Agregar al `schema.prisma` el modelo `Turno` (id UUID, `cancha_id` FK a `Cancha`, `disciplina_id` FK a `Disciplina`, `fecha` DATE, `hora_inicio`, `hora_fin`, `disponible` default `true`) y verificar que `prisma generate` compila el schema
-- [ ] 1.2 Aplicar la migración (`prisma migrate dev --name turnos`) y verificar que la tabla `Turno` con sus FKs a `Cancha` y `Disciplina` existe en la BD
-- [ ] 1.3 Crear el helper de horarios del módulo (manejo de `hora_inicio`/`hora_fin` como hora/minuto, normalización al persistir y al responder) y verificar con un unit test que un turno a medianoche se persiste/lee con la fecha del día correcto
-- [ ] 1.4 Centralizar la función de superposición de rangos `[inicio, fin)` y verificar con unit tests que detecta solapamientos parciales, totales y contiguos (sin solape)
+- [x] 1.1 Agregar al `schema.prisma` el modelo `Turno` (id UUID, `cancha_id` FK a `Cancha`, `disciplina_id` FK a `Disciplina`, `fecha` DATE, `hora_inicio`, `hora_fin`, `disponible` default `true`) y verificar que `prisma generate` compila el schema
+- [x] 1.2 Aplicar la migración (`prisma migrate dev --name turnos`) y verificar que la tabla `Turno` con sus FKs a `Cancha` y `Disciplina` existe en la BD
+- [x] 1.3 Crear el helper de horarios del módulo (manejo de `hora_inicio`/`hora_fin` como hora/minuto, normalización al persistir y al responder) y verificar con un unit test que un turno a medianoche se persiste/lee con la fecha del día correcto
+- [x] 1.4 Centralizar la función de superposición de rangos `[inicio, fin)` y verificar con unit tests que detecta solapamientos parciales, totales y contiguos (sin solape)
 
 ## 2. Consulta de turnos
 
