@@ -13,8 +13,8 @@
 
 ## 3. Disponibilidad
 
-- [ ] 3.1 Implementar `GET /disponibilidad?cancha_id=&fecha=` que retorne solo turnos con `disponible = true` de esa cancha y fecha, y verificar con tests e2e que una lista vacía responde 200 con `[]`
-- [ ] 3.2 Verificar que `GET /disponibilidad` sin `cancha_id` o `fecha` responde 400, y que con `cancha_id` inexistente responde 404
+- [x] 3.1 Implementar `GET /disponibilidad?cancha_id=&fecha=` que retorne solo turnos con `disponible = true` de esa cancha y fecha, y verificar con tests e2e que una lista vacía responde 200 con `[]`
+- [x] 3.2 Verificar que `GET /disponibilidad` sin `cancha_id` o `fecha` responde 400, y que con `cancha_id` inexistente responde 404
 
 ## 4. Mutaciones de turnos (admin)
 

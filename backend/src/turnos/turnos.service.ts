@@ -1,9 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { DisponibilidadQueryDto } from './dto/disponibilidad.query.js';
 import { ListarTurnosQueryDto } from './dto/listar-turnos.query.js';
 import { aFechaUtc } from './horarios.js';
-import { MENSAJE_TURNO_NO_ENCONTRADO } from './mensajes.js';
+import {
+  MENSAJE_CANCHA_NO_ENCONTRADA,
+  MENSAJE_TURNO_NO_ENCONTRADO,
+} from './mensajes.js';
 import {
   aTurnoPublico,
   SELECCION_TURNO_PUBLICO,
@@ -55,5 +59,26 @@ export class TurnosService {
       throw new NotFoundException(MENSAJE_TURNO_NO_ENCONTRADO);
     }
     return aTurnoPublico(turno);
+  }
+
+  async disponibles(filtros: DisponibilidadQueryDto): Promise<TurnoPublico[]> {
+    const cancha = await this.prisma.cancha.findUnique({
+      where: { id: filtros.cancha_id },
+      select: { id: true },
+    });
+    if (!cancha) {
+      throw new NotFoundException(MENSAJE_CANCHA_NO_ENCONTRADA);
+    }
+
+    const turnos = await this.prisma.turno.findMany({
+      where: {
+        canchaId: filtros.cancha_id,
+        fecha: aFechaUtc(filtros.fecha),
+        disponible: true,
+      },
+      select: SELECCION_TURNO_PUBLICO,
+      orderBy: [{ horaInicio: 'asc' }],
+    });
+    return turnos.map(aTurnoPublico);
   }
 }
