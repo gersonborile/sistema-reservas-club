@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CanchasModule } from './canchas/canchas.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { TurnosModule } from './turnos/turnos.module.js';
 
@@ -11,6 +12,7 @@ import { TurnosModule } from './turnos/turnos.module.js';
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     AuthModule,
+    CanchasModule,
     TurnosModule,
   ],
   controllers: [AppController],
