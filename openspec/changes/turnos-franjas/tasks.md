@@ -7,9 +7,9 @@
 
 ## 2. Consulta de turnos
 
-- [ ] 2.1 Crear el módulo `Turnos` (controller + servicio + DTOs) en `backend/src/turnos` y verificar que se registra en `AppModule` y el health check sigue en `/`
-- [ ] 2.2 Implementar `GET /turnos` con filtros opcionales `cancha_id`, `disciplina_id`, `fecha` y paginación `page`/`limit`, y verificar con tests de integración que los filtros y la paginación devuelven el subconjunto esperado y que cada turno incluye `disponible`
-- [ ] 2.3 Implementar `GET /turnos/:id` y verificar que responde 200 con el turno (cancha, disciplina y `disponible`) para un id existente y 404 para un id inexistente
+- [x] 2.1 Crear el módulo `Turnos` (controller + servicio + DTOs) en `backend/src/turnos` y verificar que se registra en `AppModule` y el health check sigue en `/`
+- [x] 2.2 Implementar `GET /turnos` con filtros opcionales `cancha_id`, `disciplina_id`, `fecha` y paginación `page`/`limit`, y verificar con tests de integración que los filtros y la paginación devuelven el subconjunto esperado y que cada turno incluye `disponible`
+- [x] 2.3 Implementar `GET /turnos/:id` y verificar que responde 200 con el turno (cancha, disciplina y `disponible`) para un id existente y 404 para un id inexistente
 
 ## 3. Disponibilidad
 
