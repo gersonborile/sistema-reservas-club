@@ -1,6 +1,6 @@
 ## Context
 
-El módulo Canchas + seed de Disciplinas está diseñado en `canchas-crud` (ver proposal.md — Why): backend NestJS en `/backend`, PostgreSQL + Prisma, IDs UUID, validación con `class-validator`, erros estándar de Nest, guard de autorización como seam (`@Roles('admin')` + `AuthzGuard` + `AuthPrincipalProvider`). Este diseño define el módulo `Turnos` sobre esa base: el turno referencia una `Cancha` y una `Disciplina` existentes, y las mutaciones reutilizan el mismo seam de auth.
+El módulo Canchas + seed de Disciplinas está diseñado en `canchas-crud` (ver proposal.md — Why): backend NestJS en `/backend`, PostgreSQL + Prisma, IDs UUID, validación con `class-validator`, erros estándar de Nest, autorización con los guards globales del módulo `auth` (`JwtAuthGuard` + `RolesGuard`, `@Public()` y `@Roles(RolUsuario.ADMINISTRADOR)`). Este diseño define el módulo `Turnos` sobre esa base: el turno referencia una `Cancha` y una `Disciplina` existentes, y las mutaciones reutilizan esa misma autorización.
 
 ## Goals / Non-Goals
 
@@ -22,7 +22,7 @@ El módulo Canchas + seed de Disciplinas está diseñado en `canchas-crud` (ver 
   - `GET /turnos` — público; query params opcionales `cancha_id`, `disciplina_id`, `fecha`, con paginación `page`/`limit` igual que en canchas.
   - `GET /turnos/:id` — público; `404` si no existe.
   - `GET /disponibilidad?cancha_id&fecha` — público; retorna solo turnos con `disponible = true`; `404` si la cancha no existe; `400` si faltan params.
-  - `POST /turnos`, `PATCH /turnos/:id`, `DELETE /turnos/:id` — `@Roles('admin')` + `AuthzGuard` (mismo seam que canchas).
+  - `POST /turnos`, `PATCH /turnos/:id`, `DELETE /turnos/:id` — `@Roles(RolUsuario.ADMINISTRADOR)`; las rutas de lectura llevan `@Public()`.
 - **Códigos de error** reutilizando el formato estándar de Nest: `400` datos inválidos/faltantes (validación de DTO), `404` no encontrado, `409` superposición o turno con reserva activa, `422` referencia a cancha/disciplina inexistente, `401` no autenticado, `403` no autorizado.
 - **Baja lógica del requisito anti-reserva para el borrado**: hasta que exista `Reserva`, "turno con reserva activa" se traduce como `disponible = false` (mismo contrato futuro). Un turno `disponible = true` se puede eliminar físicamente (`204`).
 - **DTOs con `class-validator`**: `CrearTurnoDto` y `ActualizarTurnoDto` (Campos parciales), con `IsUUID` para referencias, `IsDateString`/`IsISO8601` para fecha y horas. La existencia de cancha/disciplina se valida en el servicio (query) para responder `422` con referencias inexistentes.
@@ -30,7 +30,7 @@ El módulo Canchas + seed de Disciplinas está diseñado en `canchas-crud` (ver 
 
 ## Risks / Trade-offs
 
-- [Auth aún no implementada] → Mismo provider tipado como seam que en canchas; tests e2e con un provider de prueba verifican 401/403.
+- [Dependencia de auth] → La auth ya está implementada (`auth-registro-login`); los tests e2e usan tokens reales de un admin y de un socio para verificar 401/403.
 - [Flag `disponible` desincronizable con futuras reservas] → Se documenta el contrato (reserva → `false`, cancelación → `true`) para el cambio de reservas y se expone `disponible` de solo lectura en respuestas.
 - [La validación de superposición depende de la BD al momento de persistir] → Fuera de entornos de alta concurrencia es suficiente para el club; si se necesita, una restricción `exclude` de Postgres puede sumarse luego sin cambio de API.
 - [Filtros sin validar formato de `fecha`] → El DTO del query valida `fecha` como ISO 8601; inválida responde 400.

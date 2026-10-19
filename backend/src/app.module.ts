@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CanchasModule } from './canchas/canchas.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { TurnosModule } from './turnos/turnos.module.js';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     PrismaModule,
     AuthModule,
     CanchasModule,
+    TurnosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
