@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { CanchasModule } from './canchas/canchas.module.js';
 import { EquipamientoModule } from './equipamiento/equipamiento.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { TurnosModule } from './turnos/turnos.module.js';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
     AuthModule,
     CanchasModule,
     EquipamientoModule,
+    TurnosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
