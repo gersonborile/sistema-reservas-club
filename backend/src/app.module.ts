@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
 import { CanchasModule } from './canchas/canchas.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ReservasModule } from './reservas/reservas.module.js';
 import { TurnosModule } from './turnos/turnos.module.js';
 
 @Module({
@@ -14,6 +15,7 @@ import { TurnosModule } from './turnos/turnos.module.js';
     AuthModule,
     CanchasModule,
     TurnosModule,
+    ReservasModule,
   ],
   controllers: [AppController],
   providers: [AppService],
