@@ -77,3 +77,18 @@ export function minutosDeHora(hora: string): number {
   }
   return horas * 60 + minutos;
 }
+
+/**
+ * Instante de inicio de un turno: `fecha` + `horaInicio` interpretados en UTC.
+ * Es el instante que usan "turno pasado" y la ventana de cancelación.
+ * Valida la hora como `HH:mm` y la fecha con `aFechaUtc`.
+ */
+export function aInstanteInicioUtc(fecha: Date, horaInicio: string): Date {
+  const minutos = minutosDeHora(horaInicio);
+  const dia = fecha.getUTCFullYear();
+  const mes = fecha.getUTCMonth();
+  const diaMes = fecha.getUTCDate();
+  return new Date(
+    Date.UTC(dia, mes, diaMes, Math.floor(minutos / 60), minutos % 60),
+  );
+}
