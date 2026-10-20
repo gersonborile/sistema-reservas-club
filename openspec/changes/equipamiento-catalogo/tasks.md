@@ -1,33 +1,36 @@
-## 1. Modelo de datos del Equipamiento
+## 1. Modelo y contrato
 
-- [ ] 1.1 Verificar que el modelo `Equipamiento` del `schema.prisma` (`nombre`, `disciplinaId` FK a `Disciplina`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo`) coincide con el spec y que `prisma generate` compila el schema
-- [ ] 1.2 Aplicar las migraciones existentes (`prisma migrate deploy`) y verificar que la tabla `equipamientos` con su FK a `disciplinas` existe en la BD
-- [ ] 1.3 Crear el helper de disponibilidad del módulo (computa `disponible = stockDisponible > 0`) y verificar con un unit test que un ítem con `stockDisponible = 0` reporta `disponible = false` y con `stockDisponible > 0` reporta `disponible = true`
+- [x] 1.1 Verificar que el modelo `Equipamiento` del `schema.prisma` (`nombre`, `disciplinaId`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo`) coincide con la spec y que el cliente de Prisma ya incluye `equipamiento` y `reservaEquipamiento`
+- [x] 1.2 Alinear `proposal.md`, `design.md` y `spec.md` con el schema: camelCase, `PUT` parcial, `stockDisponible` no aceptado desde el cliente y precio serializado como número JSON
+- [x] 1.3 Crear el serializador público del módulo con `disponible = stockDisponible > 0`, `disciplina: { id, nombre }` y `precioUnitario` numérico
 
 ## 2. Consulta del catálogo
 
-- [ ] 2.1 Crear el módulo `Equipamiento` (controller + servicio + DTOs) en `backend/src/equipamiento` y verificar que se registra en `AppModule` y el health check sigue en `/`
-- [ ] 2.2 Implementar `GET /equipamiento` con filtros opcionales `disciplina_id`, `disponible`, `incluir_inactivos` (default `false`) y paginación `page`/`limit`, y verificar con tests de integración que los filtros y la paginación devuelven el subconjunto esperado y que cada ítem incluye `disponible`
-- [ ] 2.3 Implementar `GET /equipamiento/:id` y verificar que responde 200 con el ítem (disciplina, `stock_total`, `stock_disponible`, `precio_unitario`, `activo` y `disponible`) para un id existente y 404 para un id inexistente
+- [x] 2.1 Crear el módulo `Equipamiento` (controller + servicio + DTOs) en `backend/src/equipamiento` y registrarlo en `AppModule`
+- [x] 2.2 Implementar `GET /equipamiento` con filtros `disciplinaId`, `disponible`, `incluirInactivos` (default `false`) y paginación `page`/`limit`, devolviendo solo activos por defecto
+- [x] 2.3 Implementar `GET /equipamiento/:id` público con 200 para un id existente (incluso inactivo) y 404 para un id inexistente
 
 ## 3. Stock e inventario
 
-- [ ] 3.1 Verificar con tests e2e que el listado público no incluye ítems con `activo = false`, y que `GET /equipamiento?incluir_inactivos=true` sí los incluye
-- [ ] 3.2 Verificar con tests e2e que `disponible` se recalcula tras modificar el `stock_disponible` de un ítem y que un ítem con `stock_disponible = 0` NO aparece al filtrar `disponible=true`
+- [x] 3.1 Verificar que el listado público no incluye ítems con `activo = false` y que `incluirInactivos=true` sí los incluye
+- [x] 3.2 Verificar que `disponible` se deriva de `stockDisponible` y que el filtro `disponible=true` excluye ítems con `stockDisponible = 0`
+- [x] 3.3 Implementar la actualización atómica de `stockTotal`: leer el estado vigente, calcular alquiladas (`stockTotal - stockDisponible`), rechazar con 409 si el nuevo total es menor y ejecutar `updateMany` condicionado por `id` + `stockTotal` + `stockDisponible`, reintentando si el `count` es 0
 
 ## 4. Mutaciones de equipamiento (admin)
 
-- [ ] 4.1 Crear `CrearEquipamientoDto` y `ActualizarEquipamientoDto` (parcial) con `class-validator` (`nombre` no vacío, `disciplina_id` UUID, `stock_total` entero `>= 0`, `precio_unitario` numérico `>= 0`) y verificar que el `ValidationPipe` rechaza payloads inválidos con 400
-- [ ] 4.2 Implementar `POST /equipamiento` en el servicio (validar existencia de disciplina → 422, `stock_total` o `precio_unitario` negativos → 400, responder 201 con `stock_disponible = stock_total`, `activo = true` y `disponible = stock_disponible > 0`) y verificar cada caso con tests e2e
-- [ ] 4.3 Implementar `PATCH /equipamiento/:id` (mismas validaciones, `stock_disponible` no mayor que `stock_total` → 400, 404 si no existe, recalcular `disponible`) y verificar con tests e2e, incluyendo la desactivación con `activo = false`
-- [ ] 4.4 Implementar `DELETE /equipamiento/:id` (204 si el `PrestamosProvider` reporta sin préstamos activos, 404 si no existe, 409 si reporta préstamo activo) y verificar el 409 con un provider de prueba
+- [x] 4.1 Crear `CrearEquipamientoDto` y `ActualizarEquipamientoDto` (parcial) con `class-validator`: `nombre` no vacío, `disciplinaId` UUID, `stockTotal` entero entre 0 y 2147483647, `precioUnitario` entre 0 y 99999999.99 con hasta 2 decimales y `activo` booleano opcional; ningún DTO acepta `stockDisponible`
+- [x] 4.2 Implementar `POST /equipamiento` (disciplina inexistente → 422; `stockDisponible = stockTotal`; `activo = true` por defecto; `disponible` calculado) y verificar cada caso con tests
+- [x] 4.3 Implementar `PUT /equipamiento/:id` parcial (404 si no existe, 422 si la disciplina no existe, 409 si el stock baja por debajo de lo alquilado, 400 por límites) y verificar la desactivación con `activo = false`
+- [x] 4.4 Implementar `DELETE /equipamiento/:id` (204 sin alquileres, 404 si no existe, 409 con alquileres asociados y mensaje que sugiere `activo = false`; red de seguridad para `P2003`)
 
-## 5. Autorización admin-only
+## 5. Autorización
 
-- [ ] 5.1 Montar `@Roles('admin')` + `AuthzGuard` (mismo seam `AuthPrincipalProvider` que canchas) sobre `POST/PATCH/DELETE /equipamiento` y verificar que el guard aplica en esas rutas
-- [ ] 5.2 Verificar con tests e2e que las mutaciones sin principal → 401 y con rol distinto a `admin` → 403, y que `GET /equipamiento*` siguen accesibles sin autenticación
+- [x] 5.1 Aplicar `@Public()` a `GET /equipamiento` y `GET /equipamiento/:id`, y `@Roles(RolUsuario.ADMINISTRADOR)` a `POST`, `PUT` y `DELETE`
+- [x] 5.2 Verificar con e2e que las mutaciones sin token responden 401, con rol `USUARIO` responden 403 y con `ADMINISTRADOR` funcionan
 
-## 6. Calidad y cierre
+## 6. Tests y calidad
 
-- [ ] 6.1 Correr el suite completo (`npm run lint`, `npm run test:e2e`) y verificar que pasa en verde
-- [ ] 6.2 Revisar que los tests e2e cubren cada escenario del spec `specs/equipamiento-catalogo/spec.md` y agregar los faltantes (verificar cobertura escenario a escenario)
+- [x] 6.1 Unitarios de `EquipamientoService` con Vitest y `PrismaService` mockeado: listar/filtrar, crear con `stockDisponible = stockTotal`, disciplina inexistente, actualizar con ajuste de stock, reducir `stockTotal` por debajo de lo alquilado, equipamiento inexistente, eliminar y eliminar con alquileres asociados
+- [x] 6.2 E2E con Supertest y `PrismaService` mockeado: GET público, POST 401/403/201, validaciones 400, PUT 200/404/409/422 y DELETE 204/404/409
+- [x] 6.3 Correr `npm run build`, `npm run lint`, `npm test` y `npm run test:e2e` en `/backend`, y `npx @fission-ai/openspec validate --all --strict`
+- [x] 6.4 Revisar cada escenario de `specs/equipamiento-catalogo/spec.md` contra la implementación y los tests
