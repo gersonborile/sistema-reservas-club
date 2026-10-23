@@ -460,6 +460,19 @@ describe('Reservas (e2e)', () => {
         .expect(400);
     });
 
+    it('400: no acepta items de equipamiento en la reserva', async () => {
+      const token = await tokenUsuario();
+
+      await request(server())
+        .post('/reservas')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ turnoId: TURNO_LIBRE, items: [] })
+        .expect(400);
+
+      expect(reservas.size).toBe(1);
+      expect(turnos.get(TURNO_LIBRE)?.disponible).toBe(true);
+    });
+
     it('403: usuario reserva para otro usuario', async () => {
       const token = await tokenUsuario();
 
