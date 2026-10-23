@@ -140,7 +140,7 @@ export class CanchasService {
       // Turno responde 409 en lugar de dejar escapar el 500 de Prisma.
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === CODIGO_RESTRICCION_CLAVE_FORANEA
+        (error as Prisma.PrismaClientKnownRequestError).code === CODIGO_RESTRICCION_CLAVE_FORANEA
       ) {
         throw new ConflictException(MENSAJE_CANCHA_CON_TURNOS);
       }
@@ -175,3 +175,4 @@ export class CanchasService {
     }
   }
 }
+
