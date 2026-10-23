@@ -5,7 +5,7 @@ Permite a usuarios y administradores del club crear, consultar y cancelar reserv
 ## ADDED Requirements
 
 ### Requirement: Creación de reservas
-El sistema SHALL permitir crear una reserva mediante `POST /api/v1/reservas`. El cuerpo SHALL incluir `turnoId` y, opcionalmente, `usuarioId` solo para `ADMINISTRADOR`. Un usuario `USUARIO` SHALL poder reservar solo para sí mismo. El turno SHALL existir, no haber comenzado, pertenecer a una cancha en estado `DISPONIBLE` y no tener una reserva activa. Al crearse, la reserva queda en estado `CONFIRMADA` y el turno pasa a `disponible = false`. La creación NO acepta equipamiento: se alquila mediante la capacidad `rentals`.
+El sistema SHALL permitir crear una reserva mediante `POST /api/v1/reservas` con `turnoId` y, opcionalmente, `usuarioId` solo para `ADMINISTRADOR`. Un usuario `USUARIO` SHALL poder reservar solo para sí mismo. Al crearse, la reserva queda `CONFIRMADA` y el turno pasa a `disponible = false`. La creación NO acepta equipamiento: se alquila mediante la capacidad `rentals`.
 
 #### Scenario: Crear reserva en turno libre
 - **WHEN** un usuario `USUARIO` autenticado hace `POST /api/v1/reservas` con el `turnoId` de un turno futuro y disponible
