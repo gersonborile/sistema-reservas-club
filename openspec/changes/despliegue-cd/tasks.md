@@ -7,7 +7,7 @@
 
 - [ ] 2.1 Crear `docker-compose.yml` en la raíz con los servicios `db` (postgres:16 con healthcheck y volumen persistente), `backend` (espera a `db` sano), `frontend` y `caddy` (únicos puertos publicados 80 y 443), todos con `restart: unless-stopped`; verificar con `docker compose config` sin errores y con `docker compose up` local que los cuatro servicios quedan en ejecución
 - [ ] 2.2 Crear el `Caddyfile` para `{$DOMINIO}`: `/api/*` hacia el backend sin el prefijo (`handle_path`) y el resto hacia el frontend; verificar localmente que `/api/` responde desde el backend y `/` desde el frontend
-- [ ] 2.3 Crear `.env.production` con los nombres de variables (`DOMINIO`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `NEXT_PUBLIC_API_URL`) sin valores secretos, y agregar `.env` al `.gitignore`; verificar con `git status` que un `.env` de prueba no queda versionado
+- [x] 2.3 Crear `.env.production` con los nombres de variables (`DOMINIO`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `NEXT_PUBLIC_API_URL`) sin valores secretos, y agregar `.env` al `.gitignore`; verificar con `git status` que un `.env` de prueba no queda versionado
 - [ ] 2.4 Verificar que el backend falla al arrancar sin `JWT_SECRET` o `DATABASE_URL` (levantar el contenedor sin esas variables y comprobar el error explícito)
 
 ## 3. Workflow de despliegue continuo
