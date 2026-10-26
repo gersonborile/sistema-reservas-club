@@ -1,18 +1,18 @@
 ## 1. Contenedores de la aplicación
 
-- [ ] 1.1 Crear `backend/Dockerfile` multi-etapa (instala dependencias, `prisma generate`, `nest build`, ejecuta `prisma migrate deploy` y `node dist/main`) y `backend/.dockerignore`; verificar con `docker build ./backend` que la imagen se construye y que arranca contra una base local
-- [ ] 1.2 Habilitar `output: 'standalone'` en `frontend/next.config.ts`, crear `frontend/Dockerfile` multi-etapa con `NEXT_PUBLIC_API_URL` como argumento de build y `frontend/.dockerignore`; verificar con `docker build ./frontend` y que el contenedor sirve la página de inicio
+- [x] 1.1 Crear `backend/Dockerfile` multi-etapa (instala dependencias, `prisma generate`, `nest build`, ejecuta `prisma migrate deploy` y `node dist/main`) y `backend/.dockerignore`; verificar con `docker build ./backend` que la imagen se construye y que arranca contra una base local
+- [x] 1.2 Habilitar `output: 'standalone'` en `frontend/next.config.ts`, crear `frontend/Dockerfile` multi-etapa con `NEXT_PUBLIC_API_URL` como argumento de build y `frontend/.dockerignore`; verificar con `docker build ./frontend` y que el contenedor sirve la página de inicio
 
 ## 2. Orquestación y proxy
 
-- [ ] 2.1 Crear `docker-compose.yml` en la raíz con los servicios `db` (postgres:16 con healthcheck y volumen persistente), `backend` (espera a `db` sano), `frontend` y `caddy` (únicos puertos publicados 80 y 443), todos con `restart: unless-stopped`; verificar con `docker compose config` sin errores y con `docker compose up` local que los cuatro servicios quedan en ejecución
-- [ ] 2.2 Crear el `Caddyfile` para `{$DOMINIO}`: `/api/*` hacia el backend sin el prefijo (`handle_path`) y el resto hacia el frontend; verificar localmente que `/api/` responde desde el backend y `/` desde el frontend
+- [x] 2.1 Crear `docker-compose.yml` en la raíz con los servicios `db` (postgres:16 con healthcheck y volumen persistente), `backend` (espera a `db` sano), `frontend` y `caddy` (únicos puertos publicados 80 y 443), todos con `restart: unless-stopped`; verificar con `docker compose config` sin errores y con `docker compose up` local que los cuatro servicios quedan en ejecución
+- [x] 2.2 Crear el `Caddyfile` para `{$DOMINIO}`: `/api/*` hacia el backend sin el prefijo (`handle_path`) y el resto hacia el frontend; verificar localmente que `/api/` responde desde el backend y `/` desde el frontend
 - [x] 2.3 Crear `.env.production` con los nombres de variables (`DOMINIO`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGIN`, `NEXT_PUBLIC_API_URL`) sin valores secretos, y agregar `.env` al `.gitignore`; verificar con `git status` que un `.env` de prueba no queda versionado
-- [ ] 2.4 Verificar que el backend falla al arrancar sin `JWT_SECRET` o `DATABASE_URL` (levantar el contenedor sin esas variables y comprobar el error explícito)
+- [x] 2.4 Verificar que el backend falla al arrancar sin `JWT_SECRET` o `DATABASE_URL` (levantar el contenedor sin esas variables y comprobar el error explícito)
 
 ## 3. Workflow de despliegue continuo
 
-- [ ] 3.1 Crear `.github/workflows/cd.yml` con trigger `workflow_run` del workflow `CI` (`completed`, rama `main`), condición `conclusion == 'success'` y evento `push`, `concurrency` para un despliegue a la vez, y el paso SSH que actualiza `/opt/matchpoint` (`git fetch` + `git reset --hard origin/main`, `docker compose up -d --build`, `docker image prune -f`) con los secrets `SERVER_HOST`, `SERVER_USER`, `SERVER_PORT` y `SSH_PRIVATE_KEY`; verificar con `actionlint` o revisando que el workflow aparece sin errores de sintaxis en la pestaña Actions
+- [x] 3.1 Crear `.github/workflows/cd.yml` con trigger `workflow_run` del workflow `CI` (`completed`, rama `main`), condición `conclusion == 'success'` y evento `push`, `concurrency` para un despliegue a la vez, y el paso SSH que actualiza `/opt/matchpoint` (`git fetch` + `git reset --hard origin/main`, `docker compose up -d --build`, `docker image prune -f`) con los secrets `SERVER_HOST`, `SERVER_USER`, `SERVER_PORT` y `SSH_PRIVATE_KEY`; verificar con `actionlint` o revisando que el workflow aparece sin errores de sintaxis en la pestaña Actions
 - [ ] 3.2 Verificar que el CD no se dispara en un pull request ni cuando el CI falla (revisar en Actions que el job queda omitido)
 
 ## 4. Puesta en marcha en el servidor
