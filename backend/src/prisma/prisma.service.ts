@@ -47,8 +47,8 @@ export class PrismaService
    * `ClienteTransaccion`, cuyo Omit sí preserva los modelos.
    */
   async transaccion<T>(correr: (tx: ClienteTransaccion) => Promise<T>): Promise<T> {
-    return (await this.$transaction(async () => {
-      return correr(this as never);
+    return (await this.$transaction(async (tx) => {
+      return correr(tx as never);
     })) as T;
   }
 }

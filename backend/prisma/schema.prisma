@@ -105,16 +105,16 @@ model Turno {
 }
 
 model Reserva {
-  id            String                @id @default(uuid()) @db.Uuid
-  usuarioId     String                @map("usuario_id") @db.Uuid
-  turnoId       String                @map("turno_id") @db.Uuid
-  estado        EstadoReserva         @default(CONFIRMADA)
-  usuario       Usuario               @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
-  turno         Turno                 @relation(fields: [turnoId], references: [id], onDelete: Restrict)
-  equipamientos ReservaEquipamiento[]
-  pago          Pago?
-  createdAt     DateTime              @default(now()) @map("created_at")
-  updatedAt     DateTime              @updatedAt @map("updated_at")
+  id        String        @id @default(uuid()) @db.Uuid
+  usuarioId String        @map("usuario_id") @db.Uuid
+  turnoId   String        @map("turno_id") @db.Uuid
+  estado    EstadoReserva @default(CONFIRMADA)
+  usuario   Usuario       @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+  turno     Turno         @relation(fields: [turnoId], references: [id], onDelete: Restrict)
+  alquiler  Alquiler?
+  pago      Pago?
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
 
   @@index([turnoId, estado])
   @@index([usuarioId])
@@ -144,8 +144,8 @@ model ReservaEquipamiento {
   cantidad         Int
   precioUnitario   Decimal          @map("precio_unitario") @db.Decimal(10, 2)
   estadoDevolucion EstadoDevolucion @default(PENDIENTE) @map("estado_devolucion")
-  reserva          Reserva          @relation(fields: [reservaId], references: [id], onDelete: Cascade)
   equipamiento     Equipamiento     @relation(fields: [equipamientoId], references: [id], onDelete: Restrict)
+  alquiler         Alquiler         @relation(fields: [reservaId], references: [reservaId], onDelete: Cascade)
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
@@ -167,4 +167,16 @@ model Pago {
 
   @@index([estado])
   @@map("pagos")
+}
+
+model Alquiler {
+  id        String                @id @default(uuid()) @db.Uuid
+  reservaId String                @unique @map("reserva_id") @db.Uuid
+  total     Decimal               @db.Decimal(10, 2)
+  reserva   Reserva               @relation(fields: [reservaId], references: [id], onDelete: Cascade)
+  items     ReservaEquipamiento[]
+  createdAt DateTime              @default(now()) @map("created_at")
+  updatedAt DateTime              @updatedAt @map("updated_at")
+
+  @@map("alquileres")
 }

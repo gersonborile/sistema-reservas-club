@@ -61,6 +61,10 @@ function crearPrismaMock(): Record<string, any> {
       create: vi.fn(),
       updateMany: vi.fn(),
     },
+    reservaEquipamiento: {
+      findMany: vi.fn(),
+    },
+    $executeRaw: vi.fn(),
   };
   mock.transaccion = vi.fn(
     async (correr: (tx: unknown) => Promise<unknown>) => correr(mock),
@@ -244,6 +248,8 @@ describe('ReservasService', () => {
         },
       );
       prisma.turno.update.mockResolvedValue(filaTurno({ disponible: true }));
+      prisma.reservaEquipamiento.findMany.mockResolvedValue([]);
+      prisma.$executeRaw.mockResolvedValue(1);
       prisma.reserva.findUnique.mockImplementation(
         ({ where }: { where: { id: string } }) =>
           Promise.resolve({
@@ -372,12 +378,63 @@ describe('ReservasService', () => {
       expect(reserva.estado).toBe(EstadoReserva.CANCELADA);
     });
 
+    it('409 fuera de la ventana no ejecuta restitución de stock', async () => {
+      prisma.reserva.findUnique.mockResolvedValue({
+        id: RESERVA,
+        usuarioId: SOCIO,
+        turnoId: TURNO,
+        estado: EstadoReserva.CONFIRMADA,
+        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '13:59' },
+      });
+
+      await expect(service.cancelar(usuario, RESERVA)).rejects.toThrow(
+        MENSAJE_RESERVA_FUERA_DE_VENTANA,
+      );
+      expect(prisma.reservaEquipamiento.findMany).not.toHaveBeenCalled();
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    });
+
     it('404 cuando la reserva no existe', async () => {
       prisma.reserva.findUnique.mockResolvedValue(null);
 
       await expect(service.cancelar(usuario, RESERVA)).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it('restituye el stock de los items del alquiler con tope en stock_total', async () => {
+      prisma.reservaEquipamiento.findMany.mockResolvedValue([
+        { equipamientoId: OTRO, cantidad: 2 },
+        { equipamientoId: CANCHA, cantidad: 1 },
+      ]);
+
+      await service.cancelar(usuario, RESERVA);
+
+      expect(prisma.reservaEquipamiento.findMany).toHaveBeenCalledWith({
+        where: { reservaId: RESERVA },
+        select: { equipamientoId: true, cantidad: true },
+      });
+      expect(prisma.$executeRaw).toHaveBeenCalledTimes(2);
+    });
+
+    it('no toca stock si la reserva no tiene items de equipamiento', async () => {
+      prisma.reservaEquipamiento.findMany.mockResolvedValue([]);
+
+      await service.cancelar(usuario, RESERVA);
+
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    });
+
+    it('no restituye stock si la reserva ya estaba cancelada', async () => {
+      prisma.reservaEquipamiento.findMany.mockResolvedValue([
+        { equipamientoId: OTRO, cantidad: 2 },
+      ]);
+      prisma.reserva.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(service.cancelar(usuario, RESERVA)).rejects.toThrow(
+        MENSAJE_RESERVA_YA_CANCELADA,
+      );
+      expect(prisma.$executeRaw).not.toHaveBeenCalled();
     });
   });
 
