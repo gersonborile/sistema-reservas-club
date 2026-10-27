@@ -1,45 +1,57 @@
 ## Context
 
-El módulo Canchas + seed de Disciplinas está diseñado en `canchas-crud` (ver proposal.md — Why): backend NestJS en `/backend`, PostgreSQL + Prisma, IDs UUID, validación con `class-validator`, errores estándar de Nest, guard de autorización como seam (`@Roles('admin')` + `AuthzGuard` + `AuthPrincipalProvider`). Este diseño define el módulo `Equipamiento` sobre esa base: cada ítem referencia una `Disciplina` existente y las mutaciones reutilizan el mismo seam de auth.
+El módulo Canchas + seed de Disciplinas ya está implementado en `/backend` con NestJS, PostgreSQL + Prisma, IDs UUID, validación con `class-validator`, `ValidationPipe` global, guard global de JWT y `RolesGuard` con `@Roles(...)`. El modelo `Equipamiento` ya existe en `schema.prisma` con `stockTotal`, `stockDisponible`, `precioUnitario` y `activo`, y la tabla `equipamientos` con su FK a `disciplinas` y su relación `ReservaEquipamiento` ya está creada en la migración `init`. Este diseño define el módulo `Equipamiento` sobre esa base, sin migraciones nuevas.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Modelo Prisma `Equipamiento` con `id`, `nombre`, `disciplina_id` (FK), `stock_total`, `stock_disponible`, `precio_unitario` y `activo`, tal como está en el schema, manteniendo coherencia con `disciplinas`.
-- API pública de consulta del catálogo (listado con filtros y detalle) sin autenticación, con disponibilidad derivada del stock.
-- Mutaciones admin-only (crear/modificar/eliminar) con validación de nombre, disciplina existente, stock y precio no negativos.
-- Comportamiento 401/403 verificable por tests antes de que `auth-registro-login` se integre.
-- Seam para el chequeo de "ítem con préstamo activo" al eliminar, listo para el futuro cambio de préstamos.
+- Exponer el catálogo público de equipamiento con filtros, paginación y disponibilidad derivada.
+- Implementar el CRUD administrativo con `POST`, `PUT` parcial y `DELETE`.
+- Mantener el invariante `0 <= stockDisponible <= stockTotal` sin aceptar `stockDisponible` desde el cliente.
+- Ajustar `stockDisponible` de forma atómica cuando el administrador cambia `stockTotal`, tolerando modificaciones concurrentes del flujo de alquiler.
+- Responder 409 (nunca 500) cuando se intenta borrar un ítem con alquileres asociados o reducir el stock por debajo de lo alquilado.
+- Verificar 401/403 con los guards reales de `auth`.
 
 **Non-Goals:**
-- Implementar préstamos/alquileres de equipamiento ni el descuento de stock ligado a ellos (otro cambio; este deja el seam). Implementar el mecanismo de auth en sí. Frontend, reservas, pagos.
+- Implementar alquileres, reservas, pagos, turnos ni disponibilidad de canchas.
+- Modificar el schema de Prisma o las migraciones.
+- Modificar los módulos de auth o canchas.
+- Implementar frontend.
+- Agregar unicidad de nombre u otras restricciones que la spec no pide.
 
 ## Decisions
 
-- **Modelo `Equipamiento` sin flag `disponible` persistido** (ya definido en `schema.prisma`): `id`, `nombre`, `disciplinaId`, `stockTotal` (Int, default `0`), `stockDisponible` (Int, default `0`), `precioUnitario` (Decimal(10,2), default `0`), `activo` (Boolean, default `true`). Invariante: `0 <= stockDisponible <= stockTotal`. La disponibilidad se computa en el servicio como `disponible = stockDisponible > 0`. Alternativa considerada (siguiendo el patrón de `Turno`): persistir un flag `disponible`. Se descarta porque aquí `stockDisponible` ya es la fuente de verdad persistida y `disponible` es una derivación determinística, evitando estado redundante y desincronización; el contrato del spec (`disponible` en toda respuesta) se cumple computándolo. Las reservas y alquileres ajustan `stockDisponible` (lo descuentan al alquilar y lo restituyen al cancelar), por lo que no hace falta un contador `prestado` aparte.
-- **`disponible` como campo computado y filtrable**: en el query de listado, el filtro `disponible=true` se traduce a `stockDisponible > 0` en la cláusula `where` de Prisma en lugar de filtrar en memoria. Alternativa considerada: filtrar la lista en el servicio tras el fetch — descartada por ineficiencia y por mantener los filtros en la query con paginación correcta.
-- **Borrado con seam para préstamos activos**: al `DELETE /equipamiento/:id` se consulta un provider inyectado (`PrestamosProvider`) que expone si el ítem tiene préstamos activos; hoy retorna `false` (no existe el modelo) y el cambio de préstamos implementará la consulta real. Un ítem sin préstamos activos se elimina físicamente (`204`). Alternativa considerada: baja lógica vía `activo = false` — se mantiene disponible como operación (spec "Desactivar un ítem") pero no reemplaza el borrado físico requerido por el spec.
-- **Endpoints y filtros** (módulo `Equipamiento` en `backend/src/equipamiento`, controller REST):
-  - `GET /equipamiento` — público; query params opcionales `disciplina_id`, `disponible` (`true` → solo `stockDisponible > 0`), `incluir_inactivos` (default `false`), con paginación `page`/`limit` igual que en canchas.
-  - `GET /equipamiento/:id` — público; `404` si no existe.
-  - `POST /equipamiento`, `PATCH /equipamiento/:id`, `DELETE /equipamiento/:id` — `@Roles('admin')` + `AuthzGuard` (mismo seam que canchas).
-- **Códigos de error** reutilizando el formato estándar de Nest: `400` datos inválidos/faltantes (validación de DTO), `404` no encontrado, `409` ítem con préstamo activo, `422` referencia a disciplina inexistente, `401` no autenticado, `403` no autorizado.
-- **DTOs con `class-validator`**: `CrearEquipamientoDto` (`nombre` `IsString` + `IsNotEmpty`, `disciplina_id` `IsUUID`, `stock_total` `IsInt` + `Min(0)`, `precio_unitario` `IsNumber` + `Min(0)`; `stockDisponible` se inicializa igual a `stock_total`) y `ActualizarEquipamientoDto` (campos parciales, mismas validaciones, y `stock_disponible` opcional con `0 <= stock_disponible <= stock_total` validado en el servicio). La existencia de la disciplina se valida en el servicio (query) para responder `422`.
-- **Seed / datos**: no hay seed nuevo; los ítems los crea el administrador vía API.
+- **Modelo y contrato en camelCase.** Se usa el modelo `Equipamiento` tal como está en el schema: `id`, `nombre`, `disciplinaId`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo`, `createdAt`, `updatedAt`. La API expone `id`, `nombre`, `disciplinaId`, `disciplina` (`{ id, nombre }`), `stockTotal`, `stockDisponible`, `precioUnitario` (número JSON), `activo` y `disponible` (calculado como `stockDisponible > 0`). No se exponen timestamps.
+- **Serialización de `precioUnitario`.** Prisma devuelve `Decimal`; el serializador lo convierte a `number` para que el contrato JSON sea estable y consistente con el resto de la API. La spec lo documenta como número JSON.
+- **Catálogo público con `@Public()`.** `GET /equipamiento` y `GET /equipamiento/:id` no requieren token. Por defecto el listado incluye solo `activo = true`; `incluirInactivos=true` incluye también los inactivos. `incluirInactivos` está disponible para cualquier cliente porque el catálogo es público. El detalle devuelve el ítem aunque esté inactivo.
+- **Filtros y paginación.** `disciplinaId` es un UUID validado en el DTO de query; `disponible=true` filtra `stockDisponible > 0` y `disponible=false` filtra `stockDisponible = 0`; `page` y `limit` replican los límites de canchas (`limit` entre 1 y 100, default 20). Se filtra en la consulta de Prisma, no en memoria.
+- **DTOs en español con límites.** `CrearEquipamientoDto`: `nombre` no vacío, `disciplinaId` UUID, `stockTotal` entero entre 0 y 2147483647, `precioUnitario` número entre 0 y 99999999.99 con hasta 2 decimales, `activo` booleano opcional (default `true`). `ActualizarEquipamientoDto`: todos los campos opcionales con las mismas validaciones. `ListarEquipamientoQueryDto`: `disciplinaId`, `disponible`, `incluirInactivos`, `page`, `limit`. Ningún DTO acepta `stockDisponible`; el `ValidationPipe` global con `forbidNonWhitelisted` responde 400 si se envía.
+- **Creación.** Se valida que la disciplina exista (`422` si no) y se crea con `stockDisponible = stockTotal`. No se valida unicidad de `nombre`.
+- **Actualización parcial con stock atómico.** `PUT /equipamiento/:id` actualiza solo los campos enviados. Si no se envía `stockTotal`, se actualizan los demás campos sin tocar el stock. Si se envía `stockTotal`, se repite un ciclo acotado (optimistic locking):
+  1. Se lee `stockTotal` y `stockDisponible` vigentes.
+  2. Se calculan las unidades alquiladas (`stockTotal - stockDisponible`).
+  3. Si el nuevo total es menor que las unidades alquiladas, se responde `409`.
+  4. Se ejecuta `updateMany` con `where: { id, stockTotal: leído, stockDisponible: leído }` y los nuevos valores (`stockTotal`, `stockDisponible = nuevoTotal - alquiladas`, más los demás campos).
+  5. Si `count === 1`, la operación fue atómica y exitosa. Si `count === 0`, el ítem cambió en paralelo (por ejemplo, un alquiler descontó stock) y se reintenta con los valores frescos. Si se agotan los intentos, se responde `409`.
+  El `where` condicional evita pisar un cambio concurrente y nunca deja que el CHECK de la base reciba un valor inválido.
+- **Eliminación.** Se consulta el ítem con `_count.reservas`; si no existe, `404`; si tiene alquileres, `409` con un mensaje que sugiere `activo = false`. Como red de seguridad, se captura `P2003` de Prisma y se responde el mismo `409`, nunca un 500.
+- **Errores.** `400` para validación de DTO o query, `404` para ítem inexistente, `409` para reducir stock por debajo de lo alquilado o eliminar con alquileres, `422` para disciplina inexistente, `401` sin token y `403` sin rol administrador.
+- **Roles reales.** Se usa `@Roles(RolUsuario.ADMINISTRADOR)` en `POST`, `PUT` y `DELETE`; el `JwtAuthGuard` y el `RolesGuard` globales ya están registrados en `AuthModule`. `GET` lleva `@Public()`.
+- **Sin transacciones explícitas.** No hace falta `$transaction` para el ajuste de stock porque la condición del `updateMany` y el chequeo de `count` hacen la operación atómica a nivel de fila. Las lecturas posteriores solo sirven para serializar la respuesta.
+- **Tests.** Unitarios de `EquipamientoService` con Vitest y `PrismaService` mockeado; e2e con Supertest y `PrismaService` mockeado, siguiendo el patrón de `test/canchas.e2e-spec.ts`.
 
 ## Risks / Trade-offs
 
-- [Auth aún no implementada] → Mismo provider tipado como seam que en canchas; tests e2e con un provider de prueba verifican 401/403.
-- [Reservas y alquileres modifican `stockDisponible`] → Esos cambios (`spec-reservas`, `spec-alquiler`) lo ajustan con operaciones atómicas y lo acotan a `stockTotal`; este módulo solo valida la invariante cuando el admin lo edita.
-- [Filtros `disciplina_id` sin validar formato] → El DTO del query valida `disciplina_id` como UUID; inválida responde 400.
-- [`incluir_inactivos` expone ítems descontinuados] → Solo lectura pública con flag explícito; las mutaciones y la activación/desactivación quedan admin-only.
-- [Borrado físico sin préstamos aún] → El seam `PrestamosProvider` centraliza la futura regla; el 409 del spec se hace verificable con un provider de prueba.
+- [Reintentos bajo alta concurrencia] → El ciclo es acotado; si se agota, se responde `409` en lugar de arriesgar un stock inconsistente.
+- [Serializar `Decimal` como número] → Se documenta en la spec. El rango permitido (`99999999.99`) evita problemas prácticos de precisión en JSON.
+- [Borrado físico vs baja lógica] → La spec pide baja física; la baja lógica queda disponible vía `activo = false` y el mensaje del 409 la sugiere.
+- [Sin unicidad de nombre] → Es una decisión explícita: el schema no la tiene y la spec no la pide.
 
 ## Migration Plan
 
-- La tabla `equipamientos` y su FK a `disciplinas` ya existen en la migración `init`; no hay migración nueva.
-- Rollback: revertir el PR; no se tocó el schema.
+- No hay migración nueva: la tabla `equipamientos`, su FK a `disciplinas` y la relación `ReservaEquipamiento` ya existen.
+- Rollback: revertir el PR; no se tocó el schema ni las migraciones.
 
 ## Open Questions
 
-- Ninguna que requiera decisión ahora: la forma exacta en que los préstamos descuentan stock pertenece al futuro cambio de préstamos y no cambia este spec.
+- Ninguna. El flujo de alquiler queda fuera de alcance y solo se contempla como escritor concurrente de `stockDisponible`.
