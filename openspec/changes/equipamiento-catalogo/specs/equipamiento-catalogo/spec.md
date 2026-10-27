@@ -6,20 +6,26 @@ Permite al club administrar el catálogo de equipamiento deportivo (raquetas, pe
 
 ### Requirement: Consultar catálogo de equipamiento
 
-El sistema SHALL permitir listar los ítems de equipamiento del club y consultar el detalle de un ítem individual sin requerir autenticación. Cada ítem SHALL incluir `id`, `nombre`, `disciplinaId`, `disciplina` (objeto con `id` y `nombre`), `stockTotal`, `stockDisponible`, `precioUnitario` (número JSON), `activo` y `disponible`. `disponible` SHALL ser un campo calculado —nunca persistido— que vale `true` si y solo si `stockDisponible > 0`.
-
-El catálogo público por defecto SHALL devolver únicamente ítems con `activo = true`. El listado SHALL aceptar los siguientes parámetros opcionales:
-
-- `disciplinaId`: UUID de una disciplina existente; si el formato es inválido responde 400.
-- `disponible`: booleano; `true` filtra `stockDisponible > 0`, `false` filtra `stockDisponible = 0` y omitirlo no filtra por stock.
-- `incluirInactivos`: booleano, por defecto `false`; al ser el catálogo público, cualquier cliente puede usarlo. Con `true` incluye ítems activos e inactivos; con `false` u omitido devuelve solo activos.
-- `page`: entero mayor o igual a 1, por defecto 1.
-- `limit`: entero entre 1 y 100, por defecto 20.
+El sistema SHALL permitir listar los ítems de equipamiento y consultar el detalle de un ítem individual sin requerir autenticación. Cada ítem SHALL incluir `id`, `nombre`, `disciplinaId`, `disciplina` (objeto con `id` y `nombre`), `stockTotal`, `stockDisponible`, `precioUnitario` (número JSON), `activo` y `disponible`. `disponible` SHALL ser un campo calculado —nunca persistido— que vale `true` si y solo si `stockDisponible > 0`.
 
 #### Scenario: Listado público por defecto
 
 - **WHEN** cualquier cliente, autenticado o no, consulta `GET /equipamiento`
 - **THEN** el sistema responde 200 con los ítems activos, cada uno con `id`, `nombre`, `disciplinaId`, `disciplina`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo` y `disponible`
+
+#### Scenario: Detalle de un ítem existente
+
+- **WHEN** un cliente consulta `GET /equipamiento/:id` con un id existente
+- **THEN** el sistema responde 200 con el ítem solicitado, incluyendo `disciplina`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo` y `disponible`, aunque el ítem esté inactivo
+
+#### Scenario: Detalle de un ítem inexistente
+
+- **WHEN** un cliente consulta `GET /equipamiento/:id` con un id que no existe
+- **THEN** el sistema responde 404 sin exponer detalles del ítem
+
+### Requirement: Filtrar y paginar el listado de equipamiento
+
+El listado SHALL devolver por defecto solo ítems con `activo = true` y aceptar los parámetros opcionales `disciplinaId` (UUID), `disponible` (booleano), `incluirInactivos` (booleano, por defecto `false`), `page` (entero >= 1, por defecto 1) y `limit` (entero entre 1 y 100, por defecto 20). Un valor inválido SHALL responder 400.
 
 #### Scenario: Listado filtrado por disciplina
 
@@ -46,16 +52,6 @@ El catálogo público por defecto SHALL devolver únicamente ítems con `activo 
 
 - **WHEN** un cliente consulta `GET /equipamiento` con un `disciplinaId` que no es UUID, un `limit` mayor que 100 o un `page` menor que 1
 - **THEN** el sistema responde 400
-
-#### Scenario: Detalle de un ítem existente
-
-- **WHEN** un cliente consulta `GET /equipamiento/:id` con un id existente
-- **THEN** el sistema responde 200 con el ítem solicitado, incluyendo `disciplina`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo` y `disponible`, aunque el ítem esté inactivo
-
-#### Scenario: Detalle de un ítem inexistente
-
-- **WHEN** un cliente consulta `GET /equipamiento/:id` con un id que no existe
-- **THEN** el sistema responde 404 sin exponer detalles del ítem
 
 ### Requirement: Crear ítem de equipamiento
 
@@ -105,9 +101,7 @@ El cliente SHALL NOT enviar `stockDisponible`: el sistema SHALL inicializarlo ig
 
 ### Requirement: Modificar ítem de equipamiento
 
-El sistema SHALL permitir al administrador modificar parcialmente un ítem existente mediante `PUT /equipamiento/:id`, revalidando nombre, disciplina, stock, precio y estado activo cuando se envían. Los campos no enviados SHALL conservarse.
-
-El cliente SHALL NOT enviar `stockDisponible`. Cuando se envía `stockTotal`, el sistema SHALL calcular las unidades alquiladas como `stockTotal - stockDisponible` del ítem vigente y SHALL aplicar la misma diferencia al `stockDisponible` (`nuevo stockDisponible = nuevo stockTotal - unidades alquiladas`). Si el nuevo `stockTotal` es menor que las unidades alquiladas, SHALL responder 409 sin modificar el ítem. El cálculo y la verificación SHALL realizarse de forma atómica frente a cambios concurrentes de `stockDisponible`, reintentando la operación condicional si el ítem cambió durante el proceso.
+El sistema SHALL permitir al administrador modificar parcialmente un ítem existente mediante `PUT /equipamiento/:id`, revalidando los campos enviados y conservando los no enviados. El cliente SHALL NOT enviar `stockDisponible`: el sistema SHALL rechazar con 400 cualquier body que lo incluya.
 
 #### Scenario: Modificar un ítem existente
 
@@ -118,21 +112,6 @@ El cliente SHALL NOT enviar `stockDisponible`. Cuando se envía `stockTotal`, el
 
 - **WHEN** un administrador envía `PUT /equipamiento/:id` con un id que no existe
 - **THEN** el sistema responde 404
-
-#### Scenario: Modificar stock total ajustando el disponible
-
-- **WHEN** un administrador envía `PUT /equipamiento/:id` con un nuevo `stockTotal` mayor o igual a las unidades alquiladas
-- **THEN** el sistema responde 200 y el `stockDisponible` resultante es `nuevo stockTotal - unidades alquiladas`
-
-#### Scenario: Reducir stock total por debajo de las unidades alquiladas
-
-- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `stockTotal` menor que `stockTotal - stockDisponible` del ítem vigente
-- **THEN** el sistema responde 409 con un mensaje claro y no modifica el ítem
-
-#### Scenario: Modificar ítem con stock negativo o fuera de rango
-
-- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `stockTotal` menor que 0 o mayor que 2147483647
-- **THEN** el sistema responde 400 y no modifica el ítem
 
 #### Scenario: Modificar ítem con precio inválido
 
@@ -153,6 +132,30 @@ El cliente SHALL NOT enviar `stockDisponible`. Cuando se envía `stockTotal`, el
 
 - **WHEN** un administrador envía `PUT /equipamiento/:id` con `activo = false`
 - **THEN** el sistema responde 200 con el ítem actualizado y deja de mostrarlo en los listados públicos que no usan `incluirInactivos`
+
+### Requirement: Ajustar el stock disponible al modificar el stock total
+
+Cuando se envía `stockTotal`, el sistema SHALL calcular las unidades alquiladas como `stockTotal - stockDisponible` del ítem vigente y SHALL fijar `nuevo stockDisponible = nuevo stockTotal - unidades alquiladas`. Si el nuevo `stockTotal` es menor que las unidades alquiladas, SHALL responder 409 sin modificar el ítem. El cálculo y la verificación SHALL ser atómicos frente a cambios concurrentes de `stockDisponible`.
+
+#### Scenario: Modificar stock total ajustando el disponible
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un nuevo `stockTotal` mayor o igual a las unidades alquiladas
+- **THEN** el sistema responde 200 y el `stockDisponible` resultante es `nuevo stockTotal - unidades alquiladas`
+
+#### Scenario: Reducir stock total por debajo de las unidades alquiladas
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `stockTotal` menor que `stockTotal - stockDisponible` del ítem vigente
+- **THEN** el sistema responde 409 con un mensaje claro y no modifica el ítem
+
+#### Scenario: Modificar ítem con stock negativo o fuera de rango
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `stockTotal` menor que 0 o mayor que 2147483647
+- **THEN** el sistema responde 400 y no modifica el ítem
+
+#### Scenario: Modificar stock con cambio concurrente
+
+- **WHEN** el `stockDisponible` del ítem cambia mientras se procesa un `PUT /equipamiento/:id` con `stockTotal`
+- **THEN** el sistema reintenta la operación condicional y aplica el ajuste sobre el valor vigente
 
 ### Requirement: Eliminar ítem de equipamiento
 
