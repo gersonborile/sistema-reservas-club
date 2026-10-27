@@ -1,0 +1,23 @@
+{
+  "name": "tp-ingenieria-software2",
+  "version": "1.0.0",
+  "description": "Proyecto para Ingeniería de Software II — sistema de reservas de un club deportivo (canchas de tenis, fútbol y pádel), con especificación API-first mediante OpenSpec y CI/CD con GitHub Actions.",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gersonborile/tp-ingenieria-software2.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/gersonborile/tp-ingenieria-software2/issues"
+  },
+  "homepage": "https://github.com/gersonborile/tp-ingenieria-software2#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5"
+  }
+}

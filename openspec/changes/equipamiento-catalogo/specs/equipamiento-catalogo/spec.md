@@ -1,51 +1,68 @@
 ## Purpose
 
-Permite al club administrar el catálogo de equipamiento deportivo (raquetas, pelotas, redes, etc.) por disciplina, con stock total y disponible, precio unitario, disponibilidad derivada del stock disponible, y lectura pública; como base previa para futuros préstamos o alquileres.
+Permite al club administrar el catálogo de equipamiento deportivo (raquetas, pelotas, redes, etc.) por disciplina, con stock total y disponible, precio unitario, disponibilidad derivada del stock disponible y lectura pública; como base previa para futuros préstamos o alquileres.
 
 ## ADDED Requirements
 
 ### Requirement: Consultar catálogo de equipamiento
 
-El sistema SHALL permitir listar los ítems de equipamiento del club con su disciplina, stock, precio y disponibilidad, y consultar el detalle de un ítem individual, sin requerir autenticación.
+El sistema SHALL permitir listar los ítems de equipamiento y consultar el detalle de un ítem individual sin requerir autenticación. Cada ítem SHALL incluir `id`, `nombre`, `disciplinaId`, `disciplina` (objeto con `id` y `nombre`), `stockTotal`, `stockDisponible`, `precioUnitario` (número JSON), `activo` y `disponible`. `disponible` SHALL ser un campo calculado —nunca persistido— que vale `true` si y solo si `stockDisponible > 0`.
 
-#### Scenario: Listado de todos los ítems
+#### Scenario: Listado público por defecto
 
-- **WHEN** un cliente consulta `GET /equipamiento`
-- **THEN** el sistema responde 200 con la lista de ítems de equipamiento activos; cada ítem incluye `id`, `nombre`, `disciplina_id`, `stock_total`, `stock_disponible`, `precio_unitario`, `activo` y `disponible`
-
-#### Scenario: Listado filtrado por disciplina
-
-- **WHEN** un cliente consulta `GET /equipamiento?disciplina_id=<id>`
-- **THEN** el sistema responde 200 solo con los ítems activos de la disciplina indicada
-
-#### Scenario: Listado filtrado por disponibilidad
-
-- **WHEN** un cliente consulta `GET /equipamiento?disponible=true`
-- **THEN** el sistema responde 200 solo con los ítems activos cuyo `stock_disponible` es mayor que 0
-
-#### Scenario: Listado que incluye ítems inactivos
-
-- **WHEN** un cliente consulta `GET /equipamiento?incluir_inactivos=true`
-- **THEN** el sistema responde 200 incluyendo los ítems con `activo = false`
+- **WHEN** cualquier cliente, autenticado o no, consulta `GET /equipamiento`
+- **THEN** el sistema responde 200 con los ítems activos, cada uno con `id`, `nombre`, `disciplinaId`, `disciplina`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo` y `disponible`
 
 #### Scenario: Detalle de un ítem existente
 
 - **WHEN** un cliente consulta `GET /equipamiento/:id` con un id existente
-- **THEN** el sistema responde 200 con el ítem solicitado, incluyendo disciplina, `stock_total`, `stock_disponible`, `precio_unitario`, `activo` y `disponible`
+- **THEN** el sistema responde 200 con el ítem solicitado, incluyendo `disciplina`, `stockTotal`, `stockDisponible`, `precioUnitario`, `activo` y `disponible`, aunque el ítem esté inactivo
 
 #### Scenario: Detalle de un ítem inexistente
 
 - **WHEN** un cliente consulta `GET /equipamiento/:id` con un id que no existe
 - **THEN** el sistema responde 404 sin exponer detalles del ítem
 
+### Requirement: Filtrar y paginar el listado de equipamiento
+
+El listado SHALL devolver por defecto solo ítems con `activo = true` y aceptar los parámetros opcionales `disciplinaId` (UUID), `disponible` (booleano), `incluirInactivos` (booleano, por defecto `false`), `page` (entero >= 1, por defecto 1) y `limit` (entero entre 1 y 100, por defecto 20). Un valor inválido SHALL responder 400.
+
+#### Scenario: Listado filtrado por disciplina
+
+- **WHEN** un cliente consulta `GET /equipamiento?disciplinaId=<uuid>`
+- **THEN** el sistema responde 200 solo con los ítems activos de la disciplina indicada
+
+#### Scenario: Listado filtrado por disponibilidad
+
+- **WHEN** un cliente consulta `GET /equipamiento?disponible=true`
+- **THEN** el sistema responde 200 solo con los ítems activos cuyo `stockDisponible` es mayor que 0
+- **AND** si consulta `disponible=false`, responde solo con los ítems activos cuyo `stockDisponible` es 0
+
+#### Scenario: Listado que incluye ítems inactivos
+
+- **WHEN** un cliente consulta `GET /equipamiento?incluirInactivos=true`
+- **THEN** el sistema responde 200 incluyendo también los ítems con `activo = false`
+
+#### Scenario: Listado paginado
+
+- **WHEN** un cliente consulta `GET /equipamiento?page=2&limit=5`
+- **THEN** el sistema responde 200 con hasta 5 ítems correspondientes a la segunda página
+
+#### Scenario: Listado con parámetros inválidos
+
+- **WHEN** un cliente consulta `GET /equipamiento` con un `disciplinaId` que no es UUID, un `limit` mayor que 100 o un `page` menor que 1
+- **THEN** el sistema responde 400
+
 ### Requirement: Crear ítem de equipamiento
 
-El sistema SHALL permitir al administrador crear un ítem de equipamiento con disciplina existente, nombre no vacío, `stock_total` y `precio_unitario` no negativos.
+El sistema SHALL permitir al administrador crear un ítem de equipamiento con `nombre` no vacío, una `disciplinaId` existente, un `stockTotal` entero entre 0 y 2147483647, un `precioUnitario` entre 0 y 99999999.99 con hasta 2 decimales y un `activo` booleano opcional que por defecto es `true`.
+
+El cliente SHALL NOT enviar `stockDisponible`: el sistema SHALL inicializarlo igual a `stockTotal` y SHALL rechazar con 400 cualquier body que incluya ese campo.
 
 #### Scenario: Crear un ítem válido
 
-- **WHEN** un administrador envía `POST /equipamiento` con un `nombre` no vacío, una `disciplina_id` existente, un `stock_total` y un `precio_unitario` mayores o iguales a 0
-- **THEN** el sistema responde 201 con el ítem creado, con `stock_disponible` igual a `stock_total`, `disponible` igual a `stock_disponible > 0` y `activo` igual a `true`
+- **WHEN** un administrador envía `POST /equipamiento` con un `nombre` no vacío, una `disciplinaId` existente, un `stockTotal` y un `precioUnitario` válidos
+- **THEN** el sistema responde 201 con el ítem creado, con `stockDisponible` igual a `stockTotal`, `disponible` igual a `stockDisponible > 0` y `activo` igual a `true`
 
 #### Scenario: Crear ítem con disciplina inexistente
 
@@ -54,12 +71,17 @@ El sistema SHALL permitir al administrador crear un ítem de equipamiento con di
 
 #### Scenario: Crear ítem con stock negativo
 
-- **WHEN** un administrador envía `POST /equipamiento` con un `stock_total` menor que 0
+- **WHEN** un administrador envía `POST /equipamiento` con un `stockTotal` menor que 0
 - **THEN** el sistema responde 400 y no crea el ítem
 
-#### Scenario: Crear ítem con precio negativo
+#### Scenario: Crear ítem con stock fuera del rango de un entero de 32 bits
 
-- **WHEN** un administrador envía `POST /equipamiento` con un `precio_unitario` menor que 0
+- **WHEN** un administrador envía `POST /equipamiento` con un `stockTotal` mayor que 2147483647
+- **THEN** el sistema responde 400 y no crea el ítem
+
+#### Scenario: Crear ítem con precio inválido
+
+- **WHEN** un administrador envía `POST /equipamiento` con un `precioUnitario` menor que 0, mayor que 99999999.99 o con más de 2 decimales
 - **THEN** el sistema responde 400 y no crea el ítem
 
 #### Scenario: Crear ítem con nombre faltante
@@ -69,55 +91,79 @@ El sistema SHALL permitir al administrador crear un ítem de equipamiento con di
 
 #### Scenario: Crear ítem con datos faltantes
 
-- **WHEN** un administrador envía `POST /equipamiento` sin `nombre`, `disciplina_id`, `stock_total` o `precio_unitario`
+- **WHEN** un administrador envía `POST /equipamiento` sin `nombre`, `disciplinaId`, `stockTotal` o `precioUnitario`
+- **THEN** el sistema responde 400 y no crea el ítem
+
+#### Scenario: Crear ítem enviando stock disponible
+
+- **WHEN** un administrador envía `POST /equipamiento` incluyendo `stockDisponible` en el body
 - **THEN** el sistema responde 400 y no crea el ítem
 
 ### Requirement: Modificar ítem de equipamiento
 
-El sistema SHALL permitir al administrador modificar un ítem existente, revalidando nombre, disciplina, stock y precio.
+El sistema SHALL permitir al administrador modificar parcialmente un ítem existente mediante `PUT /equipamiento/:id`, revalidando los campos enviados y conservando los no enviados. El cliente SHALL NOT enviar `stockDisponible`: el sistema SHALL rechazar con 400 cualquier body que lo incluya.
 
 #### Scenario: Modificar un ítem existente
 
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` con datos válidos para un ítem existente
-- **THEN** el sistema responde 200 con el ítem actualizado, incluyendo su `disponible` recalculado según el nuevo `stock_disponible`
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con datos válidos para un ítem existente
+- **THEN** el sistema responde 200 con el ítem actualizado, incluyendo su `disponible` recalculado según el nuevo `stockDisponible`
 
 #### Scenario: Modificar ítem inexistente
 
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` con un id que no existe
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un id que no existe
 - **THEN** el sistema responde 404
 
-#### Scenario: Modificar ítem con stock negativo
+#### Scenario: Modificar ítem con precio inválido
 
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` con un `stock_total` o un `stock_disponible` menor que 0
-- **THEN** el sistema responde 400 y no modifica el ítem
-
-#### Scenario: Modificar ítem con stock disponible mayor al total
-
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` dejando `stock_disponible` mayor que `stock_total`
-- **THEN** el sistema responde 400 y no modifica el ítem
-
-#### Scenario: Modificar ítem con precio negativo
-
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` con un `precio_unitario` menor que 0
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `precioUnitario` menor que 0, mayor que 99999999.99 o con más de 2 decimales
 - **THEN** el sistema responde 400 y no modifica el ítem
 
 #### Scenario: Modificar ítem con disciplina inexistente
 
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` referenciando una disciplina que no existe
+- **WHEN** un administrador envía `PUT /equipamiento/:id` referenciando una disciplina que no existe
 - **THEN** el sistema responde 422 y no modifica el ítem
+
+#### Scenario: Modificar ítem enviando stock disponible
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` incluyendo `stockDisponible` en el body
+- **THEN** el sistema responde 400 y no modifica el ítem
 
 #### Scenario: Desactivar un ítem
 
-- **WHEN** un administrador envía `PATCH /equipamiento/:id` con `activo = false`
-- **THEN** el sistema responde 200 con el ítem actualizado y deja de mostrarlo en los listados públicos que no usan `incluir_inactivos`
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con `activo = false`
+- **THEN** el sistema responde 200 con el ítem actualizado y deja de mostrarlo en los listados públicos que no usan `incluirInactivos`
+
+### Requirement: Ajustar el stock disponible al modificar el stock total
+
+Cuando se envía `stockTotal`, el sistema SHALL calcular las unidades alquiladas como `stockTotal - stockDisponible` del ítem vigente y SHALL fijar `nuevo stockDisponible = nuevo stockTotal - unidades alquiladas`. Si el nuevo `stockTotal` es menor que las unidades alquiladas, SHALL responder 409 sin modificar el ítem. El cálculo y la verificación SHALL ser atómicos frente a cambios concurrentes de `stockDisponible`.
+
+#### Scenario: Modificar stock total ajustando el disponible
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un nuevo `stockTotal` mayor o igual a las unidades alquiladas
+- **THEN** el sistema responde 200 y el `stockDisponible` resultante es `nuevo stockTotal - unidades alquiladas`
+
+#### Scenario: Reducir stock total por debajo de las unidades alquiladas
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `stockTotal` menor que `stockTotal - stockDisponible` del ítem vigente
+- **THEN** el sistema responde 409 con un mensaje claro y no modifica el ítem
+
+#### Scenario: Modificar ítem con stock negativo o fuera de rango
+
+- **WHEN** un administrador envía `PUT /equipamiento/:id` con un `stockTotal` menor que 0 o mayor que 2147483647
+- **THEN** el sistema responde 400 y no modifica el ítem
+
+#### Scenario: Modificar stock con cambio concurrente
+
+- **WHEN** el `stockDisponible` del ítem cambia mientras se procesa un `PUT /equipamiento/:id` con `stockTotal`
+- **THEN** el sistema reintenta la operación condicional y aplica el ajuste sobre el valor vigente
 
 ### Requirement: Eliminar ítem de equipamiento
 
-El sistema SHALL permitir al administrador eliminar un ítem siempre que no tenga un préstamo activo asociado.
+El sistema SHALL permitir al administrador eliminar un ítem siempre que no tenga alquileres asociados en `ReservaEquipamiento`. La eliminación SHALL ser física. Si el ítem tiene alquileres asociados, SHALL responder 409 con un mensaje que sugiera desactivarlo con `activo = false`. El backend SHALL responder 409 —nunca un error interno— cuando la base de datos restrinja el borrado por referencias existentes.
 
-#### Scenario: Eliminar ítem sin préstamo activo
+#### Scenario: Eliminar ítem sin alquileres asociados
 
-- **WHEN** un administrador envía `DELETE /equipamiento/:id` para un ítem sin préstamos activos asociados
+- **WHEN** un administrador envía `DELETE /equipamiento/:id` para un ítem sin alquileres asociados
 - **THEN** el sistema responde 204 y el ítem deja de existir
 
 #### Scenario: Eliminar ítem inexistente
@@ -125,37 +171,37 @@ El sistema SHALL permitir al administrador eliminar un ítem siempre que no teng
 - **WHEN** un administrador envía `DELETE /equipamiento/:id` con un id que no existe
 - **THEN** el sistema responde 404
 
-#### Scenario: Eliminar ítem con préstamo activo
+#### Scenario: Eliminar ítem con alquileres asociados
 
-- **WHEN** un administrador envía `DELETE /equipamiento/:id` para un ítem que tiene un préstamo activo asociado
-- **THEN** el sistema responde 409 y el ítem no se elimina
+- **WHEN** un administrador envía `DELETE /equipamiento/:id` para un ítem que tiene al menos un registro en `ReservaEquipamiento`
+- **THEN** el sistema responde 409, el ítem no se elimina y el mensaje sugiere desactivarlo con `activo = false`
 
 ### Requirement: Gestionar stock e inventario
 
-El sistema SHALL mantener `stock_total` y `stock_disponible` de cada ítem (siempre `0 <= stock_disponible <= stock_total`), derivar su disponibilidad de `stock_disponible` y permitir ocultarlo del catálogo público sin eliminarlo.
+El sistema SHALL mantener `stockTotal` y `stockDisponible` de cada ítem con el invariante `0 <= stockDisponible <= stockTotal`, derivar `disponible` de `stockDisponible` y permitir ocultarlo del catálogo público sin eliminarlo mediante `activo = false`.
 
 #### Scenario: Disponibilidad derivada del stock
 
-- **WHEN** un ítem tiene `stock_disponible` mayor que 0
-- **THEN** el sistema reporta `disponible = true` para ese ítem en toda consulta; si el `stock_disponible` es 0, reporta `disponible = false`
+- **WHEN** un ítem tiene `stockDisponible` mayor que 0
+- **THEN** el sistema reporta `disponible = true` para ese ítem en toda consulta; si el `stockDisponible` es 0, reporta `disponible = false`
 
 #### Scenario: Ítem inactivo oculto del listado público
 
-- **WHEN** un cliente consulta `GET /equipamiento` sin `incluir_inactivos` y existe un ítem con `activo = false`
+- **WHEN** un cliente consulta `GET /equipamiento` sin `incluirInactivos` y existe un ítem con `activo = false`
 - **THEN** el sistema responde 200 sin incluir ese ítem
 
 #### Scenario: El stock de un ítem nunca es negativo
 
-- **WHEN** se intenta crear o modificar un ítem con un `stock_total` o `stock_disponible` menor que 0
+- **WHEN** se intenta crear o modificar un ítem con un `stockTotal` menor que 0
 - **THEN** el sistema responde 400 y no crea ni modifica el ítem
 
 ### Requirement: Acceso administrativo a mutaciones
 
-El sistema SHALL requerir un usuario autenticado con rol administrador para crear, modificar o eliminar ítems de equipamiento.
+El sistema SHALL requerir un usuario autenticado con rol administrador para crear, modificar o eliminar ítems de equipamiento. Las consultas `GET /equipamiento` y `GET /equipamiento/:id` SHALL ser públicas.
 
 #### Scenario: Cliente sin autenticación intenta mutar
 
-- **WHEN** un cliente no autenticado envía `POST /equipamiento`, `PATCH /equipamiento/:id` o `DELETE /equipamiento/:id`
+- **WHEN** un cliente no autenticado envía `POST /equipamiento`, `PUT /equipamiento/:id` o `DELETE /equipamiento/:id`
 - **THEN** el sistema responde 401 sin realizar la operación
 
 #### Scenario: Usuario autenticado sin rol administrador intenta mutar
