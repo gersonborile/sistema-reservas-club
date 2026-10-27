@@ -24,7 +24,7 @@ jobs:
           node-version: '20'
 
       - name: Instalar OpenSpec CLI
-        run: npm install -g @fission-ai/openspec@latest
+        run: npm install -g @fission-ai/openspec@1.14.3
 
       - name: Validar specs
         run: openspec validate --all --strict
