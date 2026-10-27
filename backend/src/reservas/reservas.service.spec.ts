@@ -83,6 +83,7 @@ describe('ReservasService', () => {
 
   describe('crear', () => {
     beforeEach(async () => {
+      vi.setSystemTime(new Date('2026-10-23T12:00:00Z'));
       prisma = crearPrismaMock();
       prisma.turno.findUnique.mockResolvedValue(
         filaTurno({ cancha: { estado: EstadoCancha.DISPONIBLE } }),
