@@ -17,10 +17,10 @@
 
 ## 4. Puesta en marcha en el servidor
 
-- [ ] 4.1 En la EC2, clonar el repo en `/opt/matchpoint` (con el punto final) y crear `.env` desde `.env.production` con valores reales; verificar con `ls -la /opt/matchpoint` que existen `docker-compose.yml` y `.env`
-- [ ] 4.2 Primer arranque manual con `docker compose up -d --build`; verificar con `docker compose ps` que los cuatro servicios están en ejecución y que `https://matchpoint.alquilerespunilla.com.ar` abre con certificado válido; si hay bucle de redirecciones o falla el certificado, aplicar la alternativa de Cloudflare indicada en `design.md`
-- [ ] 4.3 Ejecutar el seed una vez dentro del contenedor del backend y verificar que la API devuelve las disciplinas (`GET /api/disciplinas` o el endpoint equivalente)
-- [ ] 4.4 Verificar la exposición mínima: desde fuera de la instancia, los puertos de PostgreSQL y del backend no responden; solo 80 y 443
+- [x] 4.1 En la EC2, clonar el repo en `/opt/matchpoint` (con el punto final) y crear `.env` desde `.env.production` con valores reales; verificar con `ls -la /opt/matchpoint` que existen `docker-compose.yml` y `.env`
+- [x] 4.2 Primer arranque manual con `docker compose up -d --build`; verificar con `docker compose ps` que los cuatro servicios están en ejecución y que `https://matchpoint.alquilerespunilla.com.ar` abre con certificado válido; si hay bucle de redirecciones o falla el certificado, aplicar la alternativa de Cloudflare indicada en `design.md`
+- [x] 4.3 Ejecutar el seed una vez dentro del contenedor del backend y verificar que la API devuelve las disciplinas (`GET /api/disciplinas` o el endpoint equivalente)
+- [x] 4.4 Verificar la exposición mínima: desde fuera de la instancia, los puertos de PostgreSQL y del backend no responden; solo 80 y 443
 
 ## 5. Prueba de extremo a extremo y documentación
 
