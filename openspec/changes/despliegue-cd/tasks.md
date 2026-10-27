@@ -25,5 +25,5 @@
 ## 5. Prueba de extremo a extremo y documentación
 
 - [ ] 5.1 Hacer un cambio trivial en `main` vía PR y verificar en Actions que el CI pasa, el CD se dispara solo y el cambio se ve en producción
-- [ ] 5.2 Reiniciar la instancia y verificar que los servicios vuelven solos y que los datos de la base siguen presentes
+- [x] 5.2 Reiniciar la instancia y verificar que los servicios vuelven solos y que los datos de la base siguen presentes
 - [ ] 5.3 Documentar en el `README.md` la URL de producción, la estructura de Docker/Caddy, las variables de entorno y el procedimiento de puesta en marcha del servidor; verificar que otra persona puede seguirlo sin ayuda
