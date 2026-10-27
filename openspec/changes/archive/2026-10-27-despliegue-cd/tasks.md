@@ -13,7 +13,7 @@
 ## 3. Workflow de despliegue continuo
 
 - [x] 3.1 Crear `.github/workflows/cd.yml` con trigger `workflow_run` del workflow `CI` (`completed`, rama `main`), condición `conclusion == 'success'` y evento `push`, `concurrency` para un despliegue a la vez, y el paso SSH que actualiza `/opt/matchpoint` (`git fetch` + `git reset --hard origin/main`, `docker compose up -d --build`, `docker image prune -f`) con los secrets `SERVER_HOST`, `SERVER_USER`, `SERVER_PORT` y `SSH_PRIVATE_KEY`; verificar con `actionlint` o revisando que el workflow aparece sin errores de sintaxis en la pestaña Actions
-- [ ] 3.2 Verificar que el CD no se dispara en un pull request ni cuando el CI falla (revisar en Actions que el job queda omitido)
+- [x] 3.2 Verificar que el CD no se dispara en un pull request ni cuando el CI falla (revisar en Actions que el job queda omitido)
 
 ## 4. Puesta en marcha en el servidor
 
@@ -24,6 +24,6 @@
 
 ## 5. Prueba de extremo a extremo y documentación
 
-- [ ] 5.1 Hacer un cambio trivial en `main` vía PR y verificar en Actions que el CI pasa, el CD se dispara solo y el cambio se ve en producción
+- [x] 5.1 Hacer un cambio trivial en `main` vía PR y verificar en Actions que el CI pasa, el CD se dispara solo y el cambio se ve en producción
 - [x] 5.2 Reiniciar la instancia y verificar que los servicios vuelven solos y que los datos de la base siguen presentes
-- [ ] 5.3 Documentar en el `README.md` la URL de producción, la estructura de Docker/Caddy, las variables de entorno y el procedimiento de puesta en marcha del servidor; verificar que otra persona puede seguirlo sin ayuda
+- [ ] 5.3 (diferida: la sección se quitó del README por decisión del equipo) Documentar en el `README.md` la URL de producción, la estructura de Docker/Caddy, las variables de entorno y el procedimiento de puesta en marcha del servidor; verificar que otra persona puede seguirlo sin ayuda
