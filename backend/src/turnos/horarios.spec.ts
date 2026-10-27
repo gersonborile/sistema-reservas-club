@@ -1,6 +1,7 @@
 import {
   aFechaIso,
   aFechaUtc,
+  aInstanteInicioUtc,
   esFechaPasada,
   normalizarHora,
 } from './horarios.js';
@@ -52,5 +53,31 @@ describe('esFechaPasada', () => {
 
     expect(esFechaPasada(ayer)).toBe(true);
     expect(esFechaPasada(hoyUtc)).toBe(false);
+  });
+});
+
+describe('aInstanteInicioUtc', () => {
+  it('combina fecha y hora de inicio en UTC', () => {
+    const instante = aInstanteInicioUtc(new Date(Date.UTC(2026, 9, 15)), '21:30');
+    expect(instante.toISOString()).toBe('2026-10-15T21:30:00.000Z');
+  });
+
+  it('un turno a medianoche cae en la medianoche del día de la fecha', () => {
+    const instante = aInstanteInicioUtc(new Date(Date.UTC(2026, 2, 1)), '00:00');
+    expect(instante.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+  });
+
+  it('funciona igual al correr la prueba en cualquier huso horario', () => {
+    const instante = aInstanteInicioUtc(new Date(Date.UTC(2026, 5, 9)), '12:00');
+    expect(instante.toISOString()).toBe('2026-06-09T12:00:00.000Z');
+  });
+
+  it('rechaza horas con formato inválido', () => {
+    expect(() =>
+      aInstanteInicioUtc(new Date(Date.UTC(2026, 0, 1)), '24:00'),
+    ).toThrow(RangeError);
+    expect(() =>
+      aInstanteInicioUtc(new Date(Date.UTC(2026, 0, 1)), 'no-es-hora'),
+    ).toThrow(RangeError);
   });
 });

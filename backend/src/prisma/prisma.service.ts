@@ -8,6 +8,16 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '../generated/prisma/client.js';
 
+/**
+ * Cliente de Prisma dentro de una transacción (`$transaction`).
+ * Se declara acá porque `Prisma.TransactionClient` del client generado
+ * se resuelve a un tipo vacío (el runtime no expone sus declaraciones).
+ */
+export type ClienteTransaccion = Omit<
+  PrismaClient,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
+
 @Injectable()
 export class PrismaService
   extends PrismaClient
@@ -30,5 +40,15 @@ export class PrismaService
 
   async onModuleDestroy(): Promise<void> {
     await this.$disconnect();
+  }
+
+  /**
+   * Envuelve el `$transaction` de Prisma tipando el `tx` con
+   * `ClienteTransaccion`, cuyo Omit sí preserva los modelos.
+   */
+  async transaccion<T>(correr: (tx: ClienteTransaccion) => Promise<T>): Promise<T> {
+    return (await this.$transaction(async () => {
+      return correr(this as never);
+    })) as T;
   }
 }

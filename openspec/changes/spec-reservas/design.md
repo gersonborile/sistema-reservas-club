@@ -1,54 +1,54 @@
 ## Context
 
-Módulo nuevo `reservations` (ver proposal.md - Why). Aplica al stack definido en `openspec/config.yaml`: REST plano `/api/v1/`, DTOs con class-validator, guards JWT por rol, Prisma/PostgreSQL. La validación de stock consume la entidad `Equipamiento` (tabla `equipamientos`) de `equipamiento-catalogo`; las canchas son entidad de dominio existente (`Court`) y la franja horaria es un slot fijo de 1 hora (no hay todavía módulo CRUD de canchas en los specs aprobados).
+Módulo nuevo `reservas` (ver proposal.md - Why). Stack de `openspec/config.yaml`: REST plano `/api/v1/`, DTOs con class-validator, guards globales `JwtAuthGuard` + `RolesGuard` del módulo `auth`, Prisma/PostgreSQL. Los modelos `Reserva`, `Turno` y `Usuario` ya existen en `schema.prisma` (migración `init`): una `Reserva` referencia un `Turno` (`turnoId`) y un `Usuario` (`usuarioId`) y tiene `estado` (`EstadoReserva`: `CONFIRMADA | CANCELADA`). El slot de 1 hora ya está modelado por `Turno` (`fecha`, `horaInicio`, `horaFin`, `disponible`). Roles reales: `USUARIO` y `ADMINISTRADOR`.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Crear reservas con validación de slot libre (misma cancha y franja) y stock de equipamiento atómica.
-- Consulta de reservas con permiso por titularidad (`socio` = propias; admin/recepcionista = todas, filtrable).
-- Cancelación respetando la ventana de 2 horas y liberación del stock.
+- Crear reservas sobre un turno libre, sin doble reserva ni carreras.
+- Consultar reservas con permiso por titularidad (`USUARIO` = propias; `ADMINISTRADOR` = todas, filtrable).
+- Cancelar respetando la ventana de 2 horas y dejando el turno libre.
 
 **Non-Goals:**
-- Endpoint de disponibilidad de canchas (consulta de slots libres) — queda para un future change de canchas/calendario. El POST es la fuente de verdad y devuelve `409` si el slot está ocupado.
-- Edición de reservas (solo crear/consultar/cancelar).
-- Pagos/facturación.
+- Equipamiento en la reserva (lo cubre `spec-alquiler`) y pagos (`spec-pagos-registro`).
+- Edición o reprogramación de reservas (solo crear, consultar, cancelar).
+- Regla "un usuario no puede tener dos reservas en la misma franja en canchas distintas": en `config.yaml` figura como configurable y no se implementa aquí.
+- Frontend: las pantallas existen con mocks.
 
 ## Decisions
 
-- **Modelo Prisma**:
-  - `Reservation` (tabla `reservations`): `id` UUID, `memberId` FK → `Member`, `courtId` FK → `Court`, `startAt` `DateTime` (timestamptz, derivado de `date` + `startTime` en hora del club), `status` enum `CONFIRMED | CANCELLED`, `createdAt`.
-  - `ReservationItem` (tabla `reservation_items`): `id` UUID, `reservationId` FK, `equipamientoId` FK → `Equipamiento`, `quantity` `Int > 0`. Un lote reservado es la suma de `quantity` de sus `ReservationItem`.
-  - Index único `@@unique([courtId, startAt])` para que el slot no pueda duplicarse a nivel de BD (anti race condition).
+- **Sin migración**: se reutiliza `Reserva` tal cual. No se agregan campos ni índices.
 
-- **Representación del slot**: se persiste `startAt`; `endAt` es implícito (`startAt + 1h`). El DTO recibe `date` + `startTime`; el service compone `startAt` y valida que `startTime` sea hora exacta dentro del horario del club. Alternativa considerada: persistir `date` + `startTime` por separado — descartada por complejidad en el overlap check.
+- **Identificación del slot por `turnoId`**: `POST /reservas` recibe `turnoId` (UUID). No se recalcula `fecha`/`horaInicio`; el turno ya los trae. Alternativa descartada: `courtId` + `date` + `startTime` (duplicaría la lógica de `turnos-franjas`).
 
-- **Creación en una sola transacción (`$transaction`)**: verifica cancha, compone slot, inserta `Reservation` + `ReservationItem`, y descuenta stock. El descuento se hace con `updateMany({ where: { id, stockDisponible: { gte: quantity } }, data: { stockDisponible: { decrement: quantity } } })`; si la fila afectada es 0 → no hay stock → `409` y rollback. El overlap se detecta por el unique index → catch `P2002` → `409`.
+- **Un turno = una reserva activa, vía `Turno.disponible`**: dentro de una `$transaction`, `turno.updateMany({ where: { id: turnoId, disponible: true }, data: { disponible: false } })`; si afecta 0 filas → `409` (turno ocupado) y no se crea nada. Luego `reserva.create`. Es atómico y evita la carrera entre dos reservas simultáneas sin agregar un índice único (que impediría re-reservar un turno cancelado, porque las reservas canceladas quedan en la tabla).
 
-- **Cancelación también transaccional**: actualiza `Reservation.status = CANCELLED` (solo si `status = CONFIRMED`) y libera stock con `stockDisponible: { increment: quantity }` por cada `ReservationItem`.
+- **Orden de validaciones en `POST`**: 1) rol/titularidad (`403`), 2) turno inexistente (`404`), 3) turno pasado (`400`), 4) cancha del turno no `DISPONIBLE` (`409`), 5) turno ocupado (`409`, vía `updateMany`).
+  - "Turno pasado" se calcula con el instante de inicio `fecha` + `horaInicio` interpretado en UTC, igual que `esFechaPasada` de `turnos/horarios.ts`. Se reutiliza ese helper cuando alcance y se agrega uno de instante de inicio para la cancelación.
 
-- **Ventana de cancelación**: la cancelación es válida si `startAt - now >= 2 horas`. Si está dentro de la ventana o la franja ya comenzó → `409`. Si la reserva ya está `CANCELLED` → `409`.
+- **Cancelación transaccional**: `reserva.updateMany({ where: { id, estado: CONFIRMADA }, data: { estado: CANCELADA } })` (0 filas → `409` reserva ya cancelada), `turno.update({ disponible: true })` y, si existe alquiler asociado, restitución de stock. La restitución de stock se agrega en el change `spec-alquiler`; aquí queda como punto de extensión en el service (sin implementar) para no depender del catálogo.
 
-- **Permisos en el service**: el DTO/controller no decide titularidad; el service resuelve del token (JWT) el rol y el member asociado. `POST`: `socio` usa su propio member; `admin`/`recepcionista` pueden enviar `memberId`. `GET /mis`: `socio` ve solo su member; `admin`/`recepcionista` ven todos con `?memberId=` opcional. `PATCH cancelar`: `socio` solo si la reserva es suya (`reservation.memberId === mi member`), `admin`/`recepcionista` cancelan cualquiera. `403` en cualquier intento ajeno.
+- **Ventana de cancelación**: válida si `inicioTurno - ahora >= 2 horas`, con `inicioTurno` = `fecha` + `horaInicio` en UTC. Si falta menos o el turno ya comenzó → `409`.
 
-- **DTOs**: `CreateReservationDto` (`courtId` UUID, `date` ISO, `startTime` con `@Matches(/^([0-1]\d|2[0-3]):00$/)`, `memberId?`, `items?: { equipamientoId, quantity }[]` con `quantity` min 1) y validación por pipe global. No se valida manualmente en services.
+- **Permisos en el service**: el usuario sale del JWT (`@CurrentUser()`, `TokenSesion`). `POST`: `USUARIO` con `usuarioId` ajeno → `403`; `ADMINISTRADOR` puede enviar `usuarioId` (debe existir, si no `404`). `GET /mis`: `USUARIO` ve solo las suyas y con `?usuarioId=` ajeno → `403`; `ADMINISTRADOR` ve todas, filtrables. `PATCH cancelar`: `USUARIO` solo si `reserva.usuarioId === userId`, si no `403`; `ADMINISTRADOR` cualquiera.
+
+- **Respuesta de reserva**: `id`, `usuarioId`, `turnoId`, `estado`, `createdAt` y el turno embebido (`fecha`, `horaInicio`, `horaFin`, cancha). `GET /mis` ordena por `fecha`/`horaInicio` descendente.
+
+- **DTOs**: `CrearReservaDto` (`turnoId` UUID, `usuarioId?` UUID) y `ListarReservasQueryDto` (`usuarioId?` UUID). Validación por pipe global, no manual en el service. Sigue el patrón de `turnos` y `canchas` (mensajes en un `mensajes.ts`).
 
 ## Risks / Trade-offs
 
-- [Carrera por el mismo slot] → Unique index `(courtId, startAt)` + `$transaction` + catch `P2002` → `409`.
-- [Carrera por el mismo stock] → `updateMany` condicional atómico sobre `stockDisponible >= quantity`; 0 filas → `409` y rollback total.
-- [Liberar stock al cancelar puede superar `stockTotal` si el admin redujo `stockTotal` después de la reserva] → El incremento se acota a `stockTotal` (cap) al liberar; documentar en el apply.
-- [Un socio puede no saber qué slots están libres (sin endpoint de disponibilidad)] → El frontend intenta el POST y muestra el `409` como "franja ocupada"; el change de canchas/calendario cubrirá el catálogo de disponibilidad.
-- [`status` enum debe mantenerse en sync con el wire format] → Los estados viajan como string `confirmed`/`cancelled`; mapeo explícito en `@map`/ serializer.
+- [Carrera por el mismo turno] → `updateMany` condicional dentro de `$transaction`; solo una de las transacciones ve `disponible: true`.
+- [`Turno.disponible` desincronizado con `Reserva.estado`] → todo cambio de uno ocurre en la misma transacción que el otro; los tests e2e verifican ambos.
+- [Zona horaria] → la ventana de 2 h y "turno pasado" usan UTC como el resto del backend. Si el club opera en otra zona, el desfase afecta a ambos módulos y se corrige en un solo lugar (el helper de horarios).
+- [Stock del alquiler al cancelar] → punto de extensión hasta `spec-alquiler`; mientras no exista alquiler, cancelar no toca stock.
 
 ## Migration Plan
 
-1. Aplicar `equipamiento-catalogo` primero (requiere `Equipamiento` para el stock).
-2. Migración Prisma aditiva: `reservations`, `reservation_items`, unique `(courtId, startAt)`, FK a `equipamientos`.
-3. Implementar módulo backend y publicar `/api/v1/reservas*`.
-4. Consumir en frontend (flujo reserva, mis reservas, cancelar).
-5. **Rollback**: revertir la migración (drop de `reservation_items`/`reservations`) y quitar endpoints; el stock de `equipamientos` queda sin cambios si no se implementó el descuento.
+1. Implementar el módulo `reservas` sobre el schema actual (sin migración).
+2. Registrarlo en `AppModule` y publicar `/api/v1/reservas*`.
+3. **Rollback**: revertir el PR; no hay cambios de esquema que deshacer.
 
 ## Open Questions
 
-- Cómo expone el frontend la disponibilidad de slots (se cubre en el future change de canchas/calendario; no cambia este spec ni las tareas de este change).
+- Ninguna que bloquee: la zona horaria del club se mantiene en UTC por consistencia con `turnos-franjas`.
