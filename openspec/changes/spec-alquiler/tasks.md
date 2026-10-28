@@ -27,4 +27,4 @@
 ## 5. Integración y verificación
 
 - [x] 5.1 Correr `npm run test` (unit) y `npm run test:e2e` y verificar que toda la suite pasa, incluidos los e2e existentes de reservas, pagos y equipamiento
-- [ ] 5.2 Revisar los escenarios de `specs/rentals/spec.md` y `specs/reservations/spec.md` contra el API levantado en local (Postgres real) y confirmar códigos, montos y que el stock queda consistente tras alquilar y cancelar
+- [x] 5.2 Revisar los escenarios de `specs/rentals/spec.md` y `specs/reservations/spec.md` contra el API levantado en local (Postgres real) y confirmar códigos, montos y que el stock queda consistente tras alquilar y cancelar
