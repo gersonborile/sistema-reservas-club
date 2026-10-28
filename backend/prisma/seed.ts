@@ -5,6 +5,7 @@ import {
   EstadoCancha,
   EstadoReserva,
   MetodoPago,
+  Prisma,
   PrismaClient,
   RolUsuario,
 } from "../src/generated/prisma/client.js";
@@ -282,19 +283,26 @@ async function seedReservaEjemplo(usuarioIds: Record<string, string>, canchaIds:
     select: { id: true, precioUnitario: true },
   });
 
+  const totalRaqueta = new Prisma.Decimal(raqueta.precioUnitario).mul(2);
+
   const reserva = await prisma.reserva.create({
     data: {
       usuarioId: usuarioIds["socio1@clubdeportivo.test"],
       turnoId: turno.id,
       estado: EstadoReserva.CONFIRMADA,
-      equipamientos: {
-        create: [
-          {
-            equipamientoId: raqueta.id,
-            cantidad: 2,
-            precioUnitario: raqueta.precioUnitario,
+      alquiler: {
+        create: {
+          total: totalRaqueta,
+          items: {
+            create: [
+              {
+                equipamientoId: raqueta.id,
+                cantidad: 2,
+                precioUnitario: raqueta.precioUnitario,
+              },
+            ],
           },
-        ],
+        },
       },
       pago: {
         create: {

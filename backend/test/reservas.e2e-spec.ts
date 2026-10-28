@@ -79,6 +79,16 @@ describe('Reservas (e2e)', () => {
   let canchas: Map<string, { id: string; nombre: string; estado: string }>;
   let turnos: Map<string, FilaTurno>;
   let reservas: Map<string, FilaReserva>;
+  let alquileres: Map<
+    string,
+    {
+      id: string;
+      reservaId: string;
+      total: number;
+      createdAt: Date;
+      items: { equipamientoId: string; cantidad: number; precioUnitario: number }[];
+    }
+  >;
   let usuarios: Map<string, { id: string }>;
   let prismaMock: Record<string, unknown>;
 
@@ -139,6 +149,7 @@ describe('Reservas (e2e)', () => {
     beforeEach(async () => {
     turnos = new Map();
     reservas = new Map();
+    alquileres = new Map();
     canchas = new Map([
       [CANCHA_FUTBOL, { id: CANCHA_FUTBOL, nombre: 'Cancha de fútbol', estado: 'DISPONIBLE' }],
       [CANCHA_TENIS, { id: CANCHA_TENIS, nombre: 'Cancha de tenis', estado: 'DISPONIBLE' }],
@@ -247,9 +258,18 @@ describe('Reservas (e2e)', () => {
         ),
       },
       reserva: {
-        findUnique: vi.fn(({ where }: { where: { id: string } }) =>
-          Promise.resolve(reservas.get(where.id) ?? null),
-        ),
+        findUnique: vi.fn(({ where }: { where: { id: string } }) => {
+          const fila = reservas.get(where.id) ?? null;
+          if (!fila) {
+            return Promise.resolve(null);
+          }
+          const alquiler = [...alquileres.values()].find(
+            (a) => a.reservaId === fila.id,
+          );
+          return Promise.resolve(
+            alquiler === undefined ? fila : { ...fila, alquiler },
+          );
+        }),
         findMany: vi.fn(
           ({
             where = {},
@@ -258,7 +278,12 @@ describe('Reservas (e2e)', () => {
           } = {}) => {
             const res = [...reservas.values()].filter(
               (r) => where.usuarioId === undefined || r.usuarioId === where.usuarioId,
-            );
+            ).map((fila) => {
+              const alquiler = [...alquileres.values()].find(
+                (a) => a.reservaId === fila.id,
+              );
+              return alquiler === undefined ? fila : { ...fila, alquiler };
+            });
             res.sort((a, b) => {
               const porFecha = b.turno.fecha.getTime() - a.turno.fecha.getTime();
               if (porFecha !== 0) {
@@ -301,6 +326,10 @@ describe('Reservas (e2e)', () => {
           },
         ),
       },
+      reservaEquipamiento: {
+        findMany: vi.fn(() => Promise.resolve([])),
+      },
+      $executeRaw: vi.fn(),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -338,6 +367,7 @@ describe('Reservas (e2e)', () => {
         estado: 'CONFIRMADA',
       });
       expect(Object.keys(respuesta.body).sort()).toEqual([
+        'alquiler',
         'createdAt',
         'estado',
         'id',
@@ -345,6 +375,7 @@ describe('Reservas (e2e)', () => {
         'turnoId',
         'usuarioId',
       ]);
+      expect(respuesta.body.alquiler).toBeNull();
       expect(respuesta.body.turno).toEqual({
         fecha: enDias(3),
         horaInicio: '18:00',
@@ -565,6 +596,45 @@ describe('Reservas (e2e)', () => {
 
       expect(respuesta.body).toHaveLength(2);
       expect(respuesta.body.every((r: { usuarioId: string }) => r.usuarioId === USUARIO_ID_OTRO)).toBe(true);
+    });
+
+    it('200: la reserva incluye el alquiler embebido cuando tiene uno', async () => {
+      const token = await tokenUsuario();
+      const reserva = filaReservaFromTurno(TURNO_LIBRE, SOCIO_E2E);
+      registrarReserva(reserva);
+      alquileres.set('alq-1', {
+        id: 'alq-1',
+        reservaId: reserva.id,
+        total: 1501.5,
+        createdAt: new Date(),
+        items: [
+          {
+            equipamientoId: TURNO_LIBRE,
+            cantidad: 3,
+            precioUnitario: 500.5,
+          },
+        ],
+      });
+
+      const respuesta = await request(server())
+        .get('/reservas/mis')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+
+      const conAlquiler = respuesta.body.find(
+        (r: { id: string }) => r.id === reserva.id,
+      );
+      expect(conAlquiler.alquiler).toEqual({
+        id: 'alq-1',
+        total: 1501.5,
+        items: [
+          {
+            equipamientoId: TURNO_LIBRE,
+            cantidad: 3,
+            precioUnitario: 500.5,
+          },
+        ],
+      });
     });
 
     it('403: usuario intenta ver las reservas de otro usuario', async () => {

@@ -162,8 +162,16 @@ export class ReservasService {
         data: { disponible: true },
       });
 
-      // Punto de extensión (spec-alquiler): si la reserva tiene alquiler,
-      // restituir aquí el stock de los equipamientos asociados.
+      // Punto de extensión (spec-alquiler): si la reserva tiene items de
+      // equipamiento, restituir su stock en la misma transacción, con tope
+      // en stock_total (Prisma no puede comparar dos columnas).
+      const items = await tx.reservaEquipamiento.findMany({
+        where: { reservaId: id },
+        select: { equipamientoId: true, cantidad: true },
+      });
+      for (const item of items) {
+        await tx.$executeRaw`UPDATE "equipamientos" SET "stock_disponible" = LEAST("stock_disponible" + ${item.cantidad}, "stock_total") WHERE "id" = ${item.equipamientoId}::uuid`;
+      }
 
       const actualizada = await tx.reserva.findUnique({
         where: { id },
