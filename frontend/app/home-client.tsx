@@ -10,7 +10,7 @@ import {
   obtenerFechaLocalHoy,
   sumarUnaHora,
 } from "@/lib/fechas";
-import { leerClaims, leerToken } from "@/lib/sesion";
+import { useSesion } from "@/lib/use-sesion";
 
 const ACCESOS_RAPIDOS: Disciplina[] = ["Tenis", "Fútbol 5", "Pádel"];
 
@@ -30,9 +30,8 @@ function formatearEquipamiento(reserva: Reserva): string {
 }
 
 export default function HomeClient() {
-  const token = leerToken();
-  const claims = token ? leerClaims(token) : null;
-  const nombre = claims?.nombre ?? "";
+  const { claims, usuario } = useSesion();
+  const nombre = usuario?.nombre ?? "";
   const proximaReserva = claims ? obtenerProximaReserva(claims.userId) : null;
   const disponiblesAhora = obtenerDisponiblesAhora().slice(0, 3);
 

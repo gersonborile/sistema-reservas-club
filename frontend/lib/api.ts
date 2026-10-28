@@ -1,13 +1,28 @@
-import { leerClaims, leerToken } from "@/lib/sesion";
+import {
+  borrarSesion,
+  guardarToken,
+  guardarUsuario,
+  leerToken,
+} from "@/lib/almacen-sesion";
+import { aRolFront } from "@/lib/tipos";
 import type {
   CampoInvalido,
   DatosLogin,
   DatosRegistro,
+  RolBackend,
+  SesionAutenticada,
   UsuarioPublico,
 } from "@/lib/tipos";
 
-/** Origen del backend. Cuando exista, las funciones de abajo pasan a usar `fetch`. */
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api/v1";
+const URL_CONFIGURADA = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+/**
+ * Origen del backend, sin sufijo de versión. En desarrollo, si no está
+ * configurado, se usa el servidor local; en producción es obligatorio.
+ */
+export const BASE_URL =
+  URL_CONFIGURADA ||
+  (process.env.NODE_ENV !== "production" ? "http://localhost:3001" : "");
 
 export class ApiError extends Error {
   readonly status: number;
@@ -21,218 +36,167 @@ export class ApiError extends Error {
   }
 }
 
-type UsuarioGuardado = UsuarioPublico & { contrasena: string };
-
-const CLAVE_USUARIOS_MOCK = "clubDeportivo.usuariosMock";
-const LATENCIA_MOCK_MS = 300;
-const TTL_TOKEN_SEGUNDOS = 60 * 60 * 8;
-const FORMATO_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-/**
- * Administrador semilla del mock. Siempre existe en el login aunque no haya
- * usuarios registrados. Es solo para desarrollo y se retira con el backend.
- * Su id (`admin-1`) no sigue el patrón `usr_...` del registro, así nunca
- * choca con los ids que genera `registrar()`.
- */
-const ADMIN_SEMILLA: UsuarioGuardado = {
-  id: "admin-1",
-  nombre: "Admin",
-  contacto: "",
-  email: "admin@club.com",
-  contrasena: "admin123",
-  rol: "administrador",
+type RespuestaError = {
+  message?: unknown;
+  campos?: unknown;
 };
 
-function esperar(): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, LATENCIA_MOCK_MS));
-}
+type UsuarioApi = {
+  id: string;
+  nombre: string;
+  contacto: string | null;
+  email: string;
+  rol: RolBackend;
+};
 
-function aBase64(texto: string): string {
-  return window
-    .btoa(texto)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
-}
+type SesionApi = {
+  token: string;
+  usuario: UsuarioApi;
+};
 
-function normalizarEmail(email: string): string {
-  return email.trim().toLowerCase();
-}
+type OpcionesPeticion = {
+  metodo?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  cuerpo?: unknown;
+  /** `null` fuerza una petición sin token (por ejemplo, login). */
+  token?: string | null;
+};
 
-function leerUsuariosRegistrados(): UsuarioGuardado[] {
-  try {
-    const crudo = window.localStorage.getItem(CLAVE_USUARIOS_MOCK);
-    if (!crudo) return [];
-    const datos: unknown = JSON.parse(crudo);
-    return Array.isArray(datos) ? (datos as UsuarioGuardado[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-/** Usuarios del mock: el administrador semilla y los registrados. */
-function leerUsuariosMock(): UsuarioGuardado[] {
-  return [ADMIN_SEMILLA, ...leerUsuariosRegistrados()];
-}
-
-function escribirUsuariosMock(usuarios: UsuarioGuardado[]): void {
-  try {
-    window.localStorage.setItem(CLAVE_USUARIOS_MOCK, JSON.stringify(usuarios));
-  } catch {
-    // Sin persistencia local los datos mock no sobreviven a una recarga.
-  }
-}
-
-/** Lista explícita de campos públicos: nunca incluye credenciales. */
-function aUsuarioPublico(usuario: UsuarioGuardado): UsuarioPublico {
+function aUsuarioPublico(usuario: UsuarioApi): UsuarioPublico {
   return {
     id: usuario.id,
     nombre: usuario.nombre,
-    contacto: usuario.contacto,
+    contacto: usuario.contacto ?? "",
     email: usuario.email,
-    rol: usuario.rol,
+    rol: aRolFront(usuario.rol),
   };
 }
 
-function crearTokenMock(usuario: UsuarioGuardado): string {
-  const emitido = Math.floor(Date.now() / 1000);
-  const claims = {
-    userId: usuario.id,
-    nombre: usuario.nombre,
-    email: usuario.email,
-    rol: usuario.rol,
-    iat: emitido,
-    exp: emitido + TTL_TOKEN_SEGUNDOS,
-  };
-  const header = aBase64(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-  const payload = aBase64(JSON.stringify(claims));
-  return `${header}.${payload}.mock-firma`;
+function aMensaje(cuerpo: RespuestaError | null): string {
+  if (typeof cuerpo?.message === "string") return cuerpo.message;
+  if (Array.isArray(cuerpo?.message)) {
+    const primero = cuerpo.message.find(
+      (mensaje): mensaje is string => typeof mensaje === "string",
+    );
+    if (primero) return primero;
+  }
+  return "No se pudo completar la petición.";
+}
+
+function aCampos(campos: unknown): CampoInvalido[] {
+  if (!Array.isArray(campos)) return [];
+  return campos.filter(
+    (campo): campo is CampoInvalido =>
+      typeof campo === "object" &&
+      campo !== null &&
+      typeof (campo as CampoInvalido).campo === "string" &&
+      typeof (campo as CampoInvalido).mensaje === "string",
+  );
+}
+
+async function leerCuerpo(respuesta: Response): Promise<RespuestaError | null> {
+  try {
+    return (await respuesta.json()) as RespuestaError;
+  } catch {
+    return null;
+  }
 }
 
 /**
- * POST /auth/registro
- *
- * Hoy la llamada está simulada contra `localStorage`. Cuando exista el backend,
- * reemplazar el cuerpo por `fetch(`${BASE_URL}/auth/registro`, ...)` conservando
- * los `ApiError` para los códigos de error (400 validación, 409 email duplicado).
+ * Realiza una petición al backend. Agrega `Authorization` si hay token
+ * guardado, envía y recibe JSON, y traduce cualquier respuesta no exitosa a
+ * `ApiError`. Un `401` en una petición con token cierra la sesión y navega al
+ * login; el `401` del login (sin token) no dispara ese cierre.
  */
+export async function peticion<T>(
+  ruta: string,
+  opciones: OpcionesPeticion = {},
+): Promise<T> {
+  if (!BASE_URL) {
+    throw new Error(
+      "Falta configurar NEXT_PUBLIC_API_URL en este entorno de producción.",
+    );
+  }
+
+  const token = opciones.token === undefined ? leerToken() : opciones.token;
+  const cabeceras: Record<string, string> = { Accept: "application/json" };
+
+  if (opciones.cuerpo !== undefined) {
+    cabeceras["Content-Type"] = "application/json";
+  }
+  if (token) {
+    cabeceras.Authorization = `Bearer ${token}`;
+  }
+
+  let respuesta: Response;
+  try {
+    respuesta = await fetch(`${BASE_URL}${ruta}`, {
+      method: opciones.metodo ?? "GET",
+      headers: cabeceras,
+      body:
+        opciones.cuerpo === undefined
+          ? undefined
+          : JSON.stringify(opciones.cuerpo),
+      cache: "no-store",
+    });
+  } catch {
+    throw new ApiError(0, "No se pudo conectar con el servidor.");
+  }
+
+  if (!respuesta.ok) {
+    const cuerpo = await leerCuerpo(respuesta);
+    if (respuesta.status === 401 && token) {
+      borrarSesion();
+      if (typeof window !== "undefined") {
+        window.location.replace("/login");
+      }
+    }
+    throw new ApiError(
+      respuesta.status,
+      aMensaje(cuerpo),
+      aCampos(cuerpo?.campos),
+    );
+  }
+
+  if (respuesta.status === 204) {
+    return undefined as T;
+  }
+  return (await respuesta.json()) as T;
+}
+
+/** POST /auth/register */
 export async function registrar(datos: DatosRegistro): Promise<UsuarioPublico> {
-  const campos = validarRegistro(datos);
-  if (campos.length > 0) {
-    throw new ApiError(400, "Revisá los datos del formulario.", campos);
-  }
-
-  await esperar();
-
-  const registrados = leerUsuariosRegistrados();
-  const email = normalizarEmail(datos.email);
-  // Se compara contra todos los usuarios del mock (incluye al administrador
-  // semilla), así nadie puede registrarse con su email.
-  if (leerUsuariosMock().some((usuario) => normalizarEmail(usuario.email) === email)) {
-    const mensaje = "El email ya está en uso.";
-    throw new ApiError(409, mensaje, [{ campo: "email", mensaje }]);
-  }
-
-  const usuario: UsuarioGuardado = {
-    id: `usr_${registrados.length + 1}`,
-    nombre: datos.nombre.trim(),
-    contacto: datos.contacto.trim(),
-    email,
-    contrasena: datos.contrasena,
-    rol: "usuario",
-  };
-
-  escribirUsuariosMock([...registrados, usuario]);
+  const usuario = await peticion<UsuarioApi>("/auth/register", {
+    metodo: "POST",
+    cuerpo: datos,
+    token: null,
+  });
   return aUsuarioPublico(usuario);
 }
 
-/**
- * POST /auth/login
- *
- * Devuelve un token de sesión que identifica al usuario y su rol. El rechazo es
- * genérico: no revela si el email existe ni cuál dato fue incorrecto. Cuando exista
- * el backend, reemplazar el cuerpo por `fetch(`${BASE_URL}/auth/login`, ...)`.
- */
+/** POST /auth/login. Guarda el token y el usuario de la sesión. */
 export async function iniciarSesion(
   datos: DatosLogin,
-): Promise<{ token: string; usuario: UsuarioPublico }> {
-  const campos = validarLogin(datos);
-  if (campos.length > 0) {
-    throw new ApiError(400, "Revisá los datos del formulario.", campos);
-  }
+): Promise<SesionAutenticada> {
+  const respuesta = await peticion<SesionApi>("/auth/login", {
+    metodo: "POST",
+    cuerpo: datos,
+    token: null,
+  });
+  const sesion: SesionAutenticada = {
+    token: respuesta.token,
+    usuario: aUsuarioPublico(respuesta.usuario),
+  };
 
-  await esperar();
-
-  const usuario = leerUsuariosMock().find(
-    (guardado) => normalizarEmail(guardado.email) === normalizarEmail(datos.email),
-  );
-  if (!usuario || usuario.contrasena !== datos.contrasena) {
-    throw new ApiError(401, "Credenciales inválidas.");
-  }
-
-  return { token: crearTokenMock(usuario), usuario: aUsuarioPublico(usuario) };
+  guardarToken(sesion.token);
+  guardarUsuario(sesion.usuario);
+  return sesion;
 }
 
-/**
- * GET /auth/perfil
- *
- * Recurso protegido: sin token (o con token que no identifica a un usuario)
- * responde 401. Cuando exista el backend, reemplazar el cuerpo por
- * `fetch(`${BASE_URL}/auth/perfil`, { headers: cabecerasDeAutenticacion() })`.
- */
+/** GET /auth/perfil. Refresca el usuario guardado con los datos del backend. */
 export async function obtenerPerfil(): Promise<UsuarioPublico> {
-  const token = leerToken();
-  const claims = token ? leerClaims(token) : null;
-  if (!claims) {
-    throw new ApiError(401, "Sesión no válida.");
-  }
-
-  await esperar();
-
-  const usuario = leerUsuariosMock().find((guardado) => guardado.id === claims.userId);
-  if (!usuario) {
-    throw new ApiError(401, "Sesión no válida.");
-  }
-
-  return aUsuarioPublico(usuario);
-}
-
-/** Cabecera `Authorization: Bearer <token>` para las peticiones al backend. */
-export function cabecerasDeAutenticacion(): Record<string, string> {
-  const token = leerToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-
-function validarRegistro(datos: DatosRegistro): CampoInvalido[] {
-  const campos: CampoInvalido[] = [];
-
-  if (!datos.nombre.trim()) {
-    campos.push({ campo: "nombre", mensaje: "Ingresá tu nombre." });
-  }
-  if (!datos.contacto.trim()) {
-    campos.push({ campo: "contacto", mensaje: "Ingresá un medio de contacto." });
-  }
-  if (!datos.email.trim()) {
-    campos.push({ campo: "email", mensaje: "Ingresá tu email." });
-  } else if (!FORMATO_EMAIL.test(datos.email.trim())) {
-    campos.push({ campo: "email", mensaje: "El email no tiene un formato válido." });
-  }
-  if (!datos.contrasena) {
-    campos.push({ campo: "contrasena", mensaje: "Ingresá una contraseña." });
-  }
-
-  return campos;
-}
-
-function validarLogin(datos: DatosLogin): CampoInvalido[] {
-  const campos: CampoInvalido[] = [];
-
-  if (!datos.email.trim()) {
-    campos.push({ campo: "email", mensaje: "Ingresá tu email." });
-  }
-  if (!datos.contrasena) {
-    campos.push({ campo: "contrasena", mensaje: "Ingresá tu contraseña." });
-  }
-
-  return campos;
+  const usuario = aUsuarioPublico(
+    await peticion<UsuarioApi>("/auth/perfil"),
+  );
+  guardarUsuario(usuario);
+  return usuario;
 }

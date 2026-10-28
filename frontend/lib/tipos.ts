@@ -1,5 +1,20 @@
 export type Rol = "usuario" | "administrador";
 
+export type RolBackend = "USUARIO" | "ADMINISTRADOR";
+
+export function esRol(valor: unknown): valor is Rol {
+  return valor === "usuario" || valor === "administrador";
+}
+
+export function esRolBackend(valor: unknown): valor is RolBackend {
+  return valor === "USUARIO" || valor === "ADMINISTRADOR";
+}
+
+/** Traduce el rol del backend al rol que usa el frontend. */
+export function aRolFront(rol: RolBackend): Rol {
+  return rol === "ADMINISTRADOR" ? "administrador" : "usuario";
+}
+
 export type UsuarioPublico = {
   id: string;
   nombre: string;
@@ -32,7 +47,6 @@ export type CampoInvalido = {
 
 export type SesionEnToken = {
   userId: string;
-  nombre: string;
   email: string;
   rol: Rol;
 };

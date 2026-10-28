@@ -168,6 +168,9 @@ describe('Auth (e2e)', () => {
       expect(emailInvalido.body.message).toEqual([
         'El email no tiene un formato válido.',
       ]);
+      expect(emailInvalido.body.campos).toEqual([
+        { campo: 'email', mensaje: 'El email no tiene un formato válido.' },
+      ]);
 
       const contrasenaCorta = await request(server())
         .post('/auth/register')
@@ -175,6 +178,12 @@ describe('Auth (e2e)', () => {
         .expect(400);
       expect(contrasenaCorta.body.message).toEqual([
         'La contraseña debe tener al menos 8 caracteres.',
+      ]);
+      expect(contrasenaCorta.body.campos).toEqual([
+        {
+          campo: 'contrasena',
+          mensaje: 'La contraseña debe tener al menos 8 caracteres.',
+        },
       ]);
 
       const incompletos = await request(server())
@@ -188,6 +197,13 @@ describe('Auth (e2e)', () => {
           'La contraseña es obligatoria.',
         ]),
       );
+      expect(incompletos.body.campos).toEqual(
+        expect.arrayContaining([
+          { campo: 'nombre', mensaje: 'El nombre es obligatorio.' },
+          { campo: 'contacto', mensaje: 'El contacto es obligatorio.' },
+          { campo: 'contrasena', mensaje: 'La contraseña es obligatoria.' },
+        ]),
+      );
 
       expect(prismaMock.usuario.create).not.toHaveBeenCalled();
     });
@@ -199,6 +215,9 @@ describe('Auth (e2e)', () => {
         .expect(400);
 
       expect(respuesta.body.message).toEqual(['property rol should not exist']);
+      expect(respuesta.body.campos).toEqual([
+        { campo: 'rol', mensaje: 'property rol should not exist' },
+      ]);
       expect(prismaMock.usuario.create).not.toHaveBeenCalled();
     });
 
@@ -257,11 +276,18 @@ describe('Auth (e2e)', () => {
       expect(respuesta.body.message).toBe('Credenciales inválidas.');
     });
 
-    it('400: valida el formato del body', async () => {
-      await request(server())
+    it('400: valida el formato del body e identifica el campo', async () => {
+      const respuesta = await request(server())
         .post('/auth/login')
         .send({ email: 'no-es-un-email', contrasena: CONTRASENA_SOCIO })
         .expect(400);
+
+      expect(respuesta.body.message).toEqual([
+        'El email no tiene un formato válido.',
+      ]);
+      expect(respuesta.body.campos).toEqual([
+        { campo: 'email', mensaje: 'El email no tiene un formato válido.' },
+      ]);
     });
   });
 

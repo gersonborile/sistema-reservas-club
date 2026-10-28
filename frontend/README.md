@@ -20,6 +20,21 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Variables de entorno
+
+El frontend toma la URL del backend de `NEXT_PUBLIC_API_URL` (sin sufijo de versión,
+porque el backend no tiene prefijo global). Copiá `frontend/.env.example` a
+`frontend/.env.local` y ajustá el valor según el entorno:
+
+- **Desarrollo local**: `http://localhost:3001`. Si la variable no está definida, el
+  frontend usa ese valor por defecto solo fuera de producción.
+- **Producción**: `https://matchpoint.alquilerespunilla.com.ar/api` (Caddy quita el
+  prefijo `/api` antes de llegar al backend).
+
+En producción la variable es obligatoria: sin ella el cliente no puede armar las
+peticiones. Después de cambiar el valor hay que reiniciar `npm run dev` o volver a
+construir con `npm run build`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
