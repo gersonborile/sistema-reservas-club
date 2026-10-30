@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
-import { borrarToken, leerClaims, leerToken } from "@/lib/sesion";
+import { borrarSesion } from "@/lib/sesion";
+import { useSesion } from "@/lib/use-sesion";
 
 function obtenerInicial(nombreCompleto: string): string {
   const partes = nombreCompleto.trim().split(/\s+/);
@@ -17,34 +18,18 @@ export default function LayoutPanelAdmin({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [cargando, setCargando] = useState(true);
-  const [autorizado, setAutorizado] = useState(false);
-  const [nombre, setNombre] = useState("");
+  const { cargando, claims, usuario } = useSesion();
+  const autorizado = claims?.rol === "administrador";
+  const nombre = usuario?.nombre ?? "";
 
   useEffect(() => {
-    const token = leerToken();
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-    const claims = leerClaims(token);
-    if (!claims) {
-      router.replace("/login");
-      return;
-    }
-    if (claims.rol !== "administrador") {
+    if (!cargando && claims && claims.rol !== "administrador") {
       router.replace("/");
-      return;
     }
-    setTimeout(() => {
-      setNombre(claims.nombre);
-      setAutorizado(true);
-      setCargando(false);
-    }, 0);
-  }, [router]);
+  }, [cargando, claims, router]);
 
   function cerrarSesion() {
-    borrarToken();
+    borrarSesion();
     router.push("/login");
   }
 

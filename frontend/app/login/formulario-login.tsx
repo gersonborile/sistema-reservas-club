@@ -5,7 +5,6 @@ import { useState } from "react";
 
 import { Aviso, Campo } from "@/app/componentes/auth";
 import { ApiError, iniciarSesion } from "@/lib/api";
-import { guardarToken } from "@/lib/sesion";
 import type { CampoInvalido } from "@/lib/tipos";
 
 export function FormularioLogin() {
@@ -24,16 +23,11 @@ export function FormularioLogin() {
 
     try {
       const sesion = await iniciarSesion({ email, contrasena });
-      if (!guardarToken(sesion.token)) {
-        setMensaje("No pudimos guardar la sesión en este navegador.");
-        setEnviando(false);
-        return;
-      }
       router.push(sesion.usuario.rol === "administrador" ? "/admin" : "/");
     } catch (error) {
       if (error instanceof ApiError) {
-        setMensaje(error.message);
         setErrores(error.campos);
+        setMensaje(error.campos.length === 0 ? error.message : null);
       } else {
         setMensaje("No pudimos iniciar sesión. Intentá de nuevo.");
       }

@@ -4,25 +4,16 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { borrarToken, leerClaims, leerToken } from "@/lib/sesion";
+import { borrarSesion } from "@/lib/sesion";
+import { useSesion } from "@/lib/use-sesion";
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [nombre, setNombre] = useState("");
+  const { usuario } = useSesion();
   const [menuAbierto, setMenuAbierto] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const token = leerToken();
-    if (token) {
-      const claims = leerClaims(token);
-      if (claims) {
-        // Usar setTimeout para evitar warning del linter
-        setTimeout(() => setNombre(claims.nombre), 0);
-      }
-    }
-  }, []);
+  const nombre = usuario?.nombre ?? "";
 
   useEffect(() => {
     function handleClickFuera(event: MouseEvent) {
@@ -44,7 +35,7 @@ export default function Navbar() {
   }
 
   function cerrarSesion() {
-    borrarToken();
+    borrarSesion();
     router.push("/login");
   }
 

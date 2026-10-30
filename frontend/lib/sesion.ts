@@ -1,38 +1,15 @@
-import type { Rol, SesionEnToken } from "@/lib/tipos";
+import { aRolFront, esRolBackend } from "@/lib/tipos";
+import type { SesionEnToken } from "@/lib/tipos";
 
-const CLAVE_TOKEN = "clubDeportivo.token";
-
-function esRol(valor: unknown): valor is Rol {
-  return valor === "usuario" || valor === "administrador";
-}
-
-export function guardarToken(token: string): boolean {
-  if (typeof window === "undefined") return false;
-  try {
-    window.localStorage.setItem(CLAVE_TOKEN, token);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function leerToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.localStorage.getItem(CLAVE_TOKEN);
-  } catch {
-    return null;
-  }
-}
-
-export function borrarToken(): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.removeItem(CLAVE_TOKEN);
-  } catch {
-    // Si el almacenamiento no está disponible la sesión ya no es recuperable.
-  }
-}
+export {
+  borrarSesion,
+  borrarToken,
+  borrarUsuario,
+  guardarToken,
+  guardarUsuario,
+  leerToken,
+  leerUsuario,
+} from "@/lib/almacen-sesion";
 
 function decodificarPayload(token: string): unknown {
   const segmentos = token.split(".");
@@ -46,23 +23,27 @@ function decodificarPayload(token: string): unknown {
   }
 }
 
-/** Claims del token de sesión: identidad y rol. `null` si el token es ilegible. */
+/**
+ * Claims del token de sesión: identidad y rol. `null` si el token es ilegible
+ * o si tiene `exp` y ya venció.
+ */
 export function leerClaims(token: string): SesionEnToken | null {
-  const payload = decodificarPayload(token) as Partial<SesionEnToken> | null;
+  const payload = decodificarPayload(token) as Record<string, unknown> | null;
   if (
     !payload ||
     typeof payload.userId !== "string" ||
-    typeof payload.nombre !== "string" ||
     typeof payload.email !== "string" ||
-    !esRol(payload.rol)
+    !esRolBackend(payload.rol) ||
+    (payload.exp !== undefined &&
+      (typeof payload.exp !== "number" ||
+        payload.exp * 1000 <= Date.now()))
   ) {
     return null;
   }
 
   return {
     userId: payload.userId,
-    nombre: payload.nombre,
     email: payload.email,
-    rol: payload.rol,
+    rol: aRolFront(payload.rol),
   };
 }

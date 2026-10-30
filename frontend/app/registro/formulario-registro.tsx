@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { Aviso, Campo } from "@/app/componentes/auth";
@@ -39,10 +39,10 @@ const VALOR_INICIAL: DatosRegistro = {
 };
 
 export function FormularioRegistro() {
+  const router = useRouter();
   const [datos, setDatos] = useState<DatosRegistro>(VALOR_INICIAL);
   const [errores, setErrores] = useState<CampoInvalido[]>([]);
   const [mensaje, setMensaje] = useState<string | null>(null);
-  const [exito, setExito] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
   function errorDe(campo: string): string | undefined {
@@ -53,37 +53,27 @@ export function FormularioRegistro() {
     evento.preventDefault();
     setErrores([]);
     setMensaje(null);
-    setExito(null);
     setEnviando(true);
 
     try {
-      const usuario = await registrar(datos);
-      setExito(`Listo, ${usuario.nombre}. Ya podés iniciar sesión.`);
+      await registrar(datos);
       setDatos(VALOR_INICIAL);
+      router.push("/login");
     } catch (error) {
       if (error instanceof ApiError) {
-        setMensaje(error.message);
-        setErrores(error.campos);
+        if (error.status === 409) {
+          setErrores([{ campo: "email", mensaje: error.message }]);
+          setMensaje(null);
+        } else {
+          setErrores(error.campos);
+          setMensaje(error.campos.length === 0 ? error.message : null);
+        }
       } else {
         setMensaje("No pudimos completar el registro. Intentá de nuevo.");
       }
     } finally {
       setEnviando(false);
     }
-  }
-
-  if (exito) {
-    return (
-      <div className="flex flex-col gap-4">
-        <Aviso tono="exito">{exito}</Aviso>
-        <Link
-          href="/login"
-          className="block w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-center text-sm font-medium text-white transition hover:bg-neutral-800"
-        >
-          Iniciar sesión
-        </Link>
-      </div>
-    );
   }
 
   return (
