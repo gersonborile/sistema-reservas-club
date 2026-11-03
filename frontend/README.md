@@ -62,5 +62,3 @@ lib/
 ## Sesión
 
 El inicio de sesión devuelve un token que se guarda en `localStorage` junto con los datos del usuario (claves `clubDeportivo.token` y `clubDeportivo.usuario`). Es lo único que el frontend guarda en el navegador. Al cargar la aplicación se borran las claves antiguas de versiones anteriores (reservas, canchas y equipamiento locales), sin tocar la sesión.
-
-> Esta versión de Next.js tiene cambios incompatibles con versiones anteriores: antes de escribir código específico de Next, consultar la guía en `node_modules/next/dist/docs/`.

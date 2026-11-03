@@ -101,11 +101,13 @@ const CLAVES_HEREDADAS = [
  */
 export function limpiarDatosHeredados(): void {
   if (typeof window === "undefined") return;
-  try {
-    for (const clave of CLAVES_HEREDADAS) {
+  for (const clave of CLAVES_HEREDADAS) {
+    // Un intento por clave: si una falla, las demás se borran igual (una de
+    // ellas guardaba contraseñas en texto plano).
+    try {
       window.localStorage.removeItem(clave);
+    } catch {
+      // Sin acceso al almacenamiento no hay nada que borrar de esa clave.
     }
-  } catch {
-    // Sin almacenamiento no hay datos heredados que borrar.
   }
 }

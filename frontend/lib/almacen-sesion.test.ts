@@ -80,6 +80,40 @@ describe("limpiarDatosHeredados", () => {
     expect(() => limpiarDatosHeredados()).not.toThrow();
   });
 
+  it("sigue borrando las demás claves si falla el borrado de una", () => {
+    const almacen = almacenEnMemoria({
+      "clubDeportivo.reservas": "[]",
+      "clubDeportivo.canchas": "[]",
+      "clubDeportivo.equipamiento": "[]",
+      "clubDeportivo.usuariosMock": '[{"password":"secreto"}]',
+    });
+    conAlmacen({
+      ...almacen,
+      removeItem: (clave: string) => {
+        if (clave === "clubDeportivo.reservas") {
+          throw new Error("Fallo puntual");
+        }
+        almacen.removeItem(clave);
+      },
+    });
+
+    expect(() => limpiarDatosHeredados()).not.toThrow();
+
+    expect(almacen.datos.has("clubDeportivo.usuariosMock")).toBe(false);
+    expect(almacen.datos.has("clubDeportivo.canchas")).toBe(false);
+    expect(almacen.datos.has("clubDeportivo.equipamiento")).toBe(false);
+  });
+
+  it("no falla si el propio acceso a localStorage lanza una excepción", () => {
+    vi.stubGlobal("window", {
+      get localStorage(): never {
+        throw new Error("Acceso bloqueado");
+      },
+    });
+
+    expect(() => limpiarDatosHeredados()).not.toThrow();
+  });
+
   it("no falla cuando no hay navegador", () => {
     expect(() => limpiarDatosHeredados()).not.toThrow();
   });
