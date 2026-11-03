@@ -84,3 +84,28 @@ export function borrarSesion(): void {
   borrarToken();
   borrarUsuario();
 }
+
+/** Claves que dejó la versión con datos simulados (reservas, canchas, etc.). */
+const CLAVES_HEREDADAS = [
+  "clubDeportivo.reservas",
+  "clubDeportivo.canchas",
+  "clubDeportivo.equipamiento",
+  "clubDeportivo.usuariosMock",
+];
+
+/**
+ * Borra los datos simulados que un navegador pudo conservar de versiones
+ * anteriores (incluidas contraseñas en texto plano). Es idempotente y no toca
+ * el token, el usuario ni el tema. Si el almacenamiento no está disponible no
+ * hace nada.
+ */
+export function limpiarDatosHeredados(): void {
+  if (typeof window === "undefined") return;
+  try {
+    for (const clave of CLAVES_HEREDADAS) {
+      window.localStorage.removeItem(clave);
+    }
+  } catch {
+    // Sin almacenamiento no hay datos heredados que borrar.
+  }
+}

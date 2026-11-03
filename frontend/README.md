@@ -1,51 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend — Sistema de reservas del club
 
-## Getting Started
+Aplicación web (Next.js 16, React 19, TypeScript y Tailwind CSS 4) para que los socios reserven canchas y alquilen equipamiento, y para que el administrador gestione canchas, equipamiento, turnos, reservas y pagos.
 
-First, run the development server:
+La aplicación **necesita el backend en ejecución**: no guarda datos propios, todo lo lee y lo escribe a través de su API.
+
+## Requisitos
+
+- Node.js 20 o superior.
+- El backend (carpeta `backend/`) levantado, con su base de datos PostgreSQL. Por defecto escucha en `http://localhost:3001`. Para tener datos de prueba, ejecutar el seed del backend.
+
+## Configuración
+
+La URL del backend se indica con la variable `NEXT_PUBLIC_API_URL`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Entorno | Valor |
+| --- | --- |
+| Desarrollo | `http://localhost:3001` (es el valor por defecto si no se define la variable) |
+| Producción | `https://matchpoint.alquilerespunilla.com.ar/api` |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+En producción la variable es **obligatoria** y se fija al compilar (`next build`); en Docker se pasa como argumento de construcción (`NEXT_PUBLIC_API_URL`).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Cómo levantarlo
 
-## Variables de entorno
+```bash
+npm install
+npm run dev
+```
 
-El frontend toma la URL del backend de `NEXT_PUBLIC_API_URL` (sin sufijo de versión,
-porque el backend no tiene prefijo global). Copiá `frontend/.env.example` a
-`frontend/.env.local` y ajustá el valor según el entorno:
+Abrir <http://localhost:3000>. Si el backend no está disponible, las pantallas muestran «No se pudo conectar con el servidor.» con un botón para reintentar.
 
-- **Desarrollo local**: `http://localhost:3001`. Si la variable no está definida, el
-  frontend usa ese valor por defecto solo fuera de producción.
-- **Producción**: `https://matchpoint.alquilerespunilla.com.ar/api` (Caddy quita el
-  prefijo `/api` antes de llegar al backend).
+## Scripts
 
-En producción la variable es obligatoria: sin ella el cliente no puede armar las
-peticiones. Después de cambiar el valor hay que reiniciar `npm run dev` o volver a
-construir con `npm run build`.
+| Comando | Qué hace |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` | Compilación de producción |
+| `npm run start` | Sirve la compilación de producción |
+| `npm run typecheck` | Verifica los tipos de TypeScript |
+| `npm run lint` | Análisis con ESLint |
+| `npm test` | Tests con Vitest (`lib/**/*.test.ts`) |
 
-## Learn More
+## Estructura
 
-To learn more about Next.js, take a look at the following resources:
+```text
+app/
+├── (protegido)/   # pantallas del socio: canchas, reservar, mis reservas
+├── admin/         # panel del administrador: resumen, canchas, equipamiento, turnos y reservas
+├── componentes/   # componentes compartidos
+├── login/ registro/
+lib/
+├── api.ts            # cliente HTTP del backend y sus funciones
+├── adaptadores.ts    # conversión de las respuestas del backend a lo que muestra la interfaz
+├── sesion.ts · almacen-sesion.ts · use-sesion.ts   # sesión del usuario
+└── fechas.ts         # fechas y horas locales
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Sesión
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+El inicio de sesión devuelve un token que se guarda en `localStorage` junto con los datos del usuario (claves `clubDeportivo.token` y `clubDeportivo.usuario`). Es lo único que el frontend guarda en el navegador. Al cargar la aplicación se borran las claves antiguas de versiones anteriores (reservas, canchas y equipamiento locales), sin tocar la sesión.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> Esta versión de Next.js tiene cambios incompatibles con versiones anteriores: antes de escribir código específico de Next, consultar la guía en `node_modules/next/dist/docs/`.
