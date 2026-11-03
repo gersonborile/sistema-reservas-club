@@ -56,3 +56,10 @@ export function sumarUnaHora(hora: string): string {
   const siguiente = (horaNum + 1) % 24;
   return `${String(siguiente).padStart(2, "0")}:${(minutosStr ?? "00").padStart(2, "0")}`;
 }
+
+/** Hora local actual en formato HH:MM. */
+export function obtenerHoraLocalAhora(): string {
+  const ahora = new Date();
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${dos(ahora.getHours())}:${dos(ahora.getMinutes())}`;
+}

@@ -14,6 +14,32 @@ import type {
   UsuarioPublico,
 } from "@/lib/tipos";
 
+export type EstadoCancha = "DISPONIBLE" | "OCUPADA" | "EN_MANTENIMIENTO";
+
+export type DisciplinaApi = {
+  id: string;
+  nombre: string;
+};
+
+export type CanchaApi = {
+  id: string;
+  nombre: string;
+  ubicacion: string;
+  capacidad: number;
+  estado: EstadoCancha;
+  disciplinas: DisciplinaApi[];
+};
+
+export type TurnoApi = {
+  id: string;
+  cancha_id: string;
+  disciplina_id: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+  disponible: boolean;
+};
+
 const URL_CONFIGURADA = process.env.NEXT_PUBLIC_API_URL?.trim();
 
 /**
@@ -199,4 +225,67 @@ export async function obtenerPerfil(): Promise<UsuarioPublico> {
   );
   guardarUsuario(usuario);
   return usuario;
+}
+
+const LIMITE_PAGINA = 50;
+
+/** Pide todas las páginas de un listado paginado (page/limit) del backend. */
+async function obtenerTodasLasPaginas<T>(
+  ruta: string,
+  params: URLSearchParams,
+): Promise<T[]> {
+  const acumulados: T[] = [];
+  for (let pagina = 1; ; pagina += 1) {
+    params.set("page", String(pagina));
+    params.set("limit", String(LIMITE_PAGINA));
+    const respuesta = await peticion<T[]>(`${ruta}?${params.toString()}`);
+    acumulados.push(...respuesta);
+    if (respuesta.length < LIMITE_PAGINA) return acumulados;
+  }
+}
+
+/** Mensaje para mostrar al usuario cuando falla una petición. */
+export function mensajeDeError(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  return "Algo salió mal. Intentalo de nuevo.";
+}
+
+/** GET /canchas, recorriendo todas las páginas. */
+export function obtenerCanchas(
+  filtros: { disciplina?: string; estado?: EstadoCancha } = {},
+): Promise<CanchaApi[]> {
+  const params = new URLSearchParams();
+  if (filtros.disciplina) params.set("disciplina", filtros.disciplina);
+  if (filtros.estado) params.set("estado", filtros.estado);
+  return obtenerTodasLasPaginas<CanchaApi>("/canchas", params);
+}
+
+/** GET /canchas/:id */
+export function obtenerCancha(id: string): Promise<CanchaApi> {
+  return peticion<CanchaApi>(`/canchas/${id}`);
+}
+
+/** GET /disciplinas */
+export function obtenerDisciplinas(): Promise<DisciplinaApi[]> {
+  return peticion<DisciplinaApi[]>("/disciplinas");
+}
+
+/** GET /turnos por cancha y fecha, recorriendo todas las páginas. */
+export function obtenerTurnos(
+  filtros: { canchaId?: string; disciplinaId?: string; fecha?: string } = {},
+): Promise<TurnoApi[]> {
+  const params = new URLSearchParams();
+  if (filtros.canchaId) params.set("cancha_id", filtros.canchaId);
+  if (filtros.disciplinaId) params.set("disciplina_id", filtros.disciplinaId);
+  if (filtros.fecha) params.set("fecha", filtros.fecha);
+  return obtenerTodasLasPaginas<TurnoApi>("/turnos", params);
+}
+
+/** GET /disponibilidad: turnos libres de una cancha en una fecha. */
+export function obtenerDisponibilidad(
+  canchaId: string,
+  fecha: string,
+): Promise<TurnoApi[]> {
+  const params = new URLSearchParams({ cancha_id: canchaId, fecha });
+  return peticion<TurnoApi[]>(`/disponibilidad?${params.toString()}`);
 }
