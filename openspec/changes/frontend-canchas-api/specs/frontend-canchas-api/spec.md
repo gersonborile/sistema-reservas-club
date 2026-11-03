@@ -5,19 +5,23 @@ Define cómo el frontend obtiene canchas, disciplinas, turnos y disponibilidad d
 ## ADDED Requirements
 
 ### Requirement: Listado de canchas desde el backend
-El frontend SHALL obtener las canchas con `GET /canchas` (y `GET /canchas/:id` para el detalle) y SHALL mostrar a los socios solo las canchas cuyo `estado` no sea `EN_MANTENIMIENTO`. El filtro por disciplina SHALL enviarse como `disciplina=<nombre>`.
+El frontend SHALL obtener las canchas con `GET /canchas` (y `GET /canchas/:id` para el detalle) y SHALL mostrar a los socios solo las canchas cuyo `estado` sea `DISPONIBLE`. El filtro por disciplina SHALL enviarse como `disciplina=<nombre>`.
 
 #### Scenario: Listado sin filtro
 - **WHEN** un socio abre `/canchas`
-- **THEN** el frontend llama a `GET /canchas` y muestra una tarjeta por cada cancha que no está en mantenimiento, con su nombre y sus disciplinas
+- **THEN** el frontend llama a `GET /canchas` y muestra una tarjeta por cada cancha en estado `DISPONIBLE`, con su nombre y sus disciplinas
 
 #### Scenario: Filtro por disciplina
 - **WHEN** el socio elige la disciplina `tenis`
 - **THEN** el frontend llama a `GET /canchas?disciplina=tenis` y muestra solo esas canchas
 
-#### Scenario: Cancha en mantenimiento
-- **WHEN** el backend devuelve una cancha con `estado` `EN_MANTENIMIENTO`
+#### Scenario: Cancha en mantenimiento u ocupada
+- **WHEN** el backend devuelve una cancha con `estado` `EN_MANTENIMIENTO` u `OCUPADA`
 - **THEN** el frontend no la muestra en el listado de socios
+
+#### Scenario: Filtro de horario
+- **WHEN** el socio abre el selector de horario
+- **THEN** las opciones son "Cualquiera" y las horas de inicio de los turnos cargados para la fecha, y al elegir una solo se muestran los turnos de esa hora
 
 ### Requirement: Disciplinas como datos
 El frontend SHALL obtener las disciplinas de `GET /disciplinas` y SHALL NOT depender de una lista fija de disciplinas. Los accesos rápidos de la Home y el filtro del listado SHALL generarse con esa respuesta.
