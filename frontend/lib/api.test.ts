@@ -3,15 +3,22 @@ import { describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   BASE_URL,
+  anularPago,
   cancelarReserva,
+  confirmarPago,
   crearAlquiler,
   crearCancha,
   crearEquipamiento,
   crearReserva,
+  crearTurno,
   editarCancha,
   editarEquipamiento,
+  editarTurno,
+  eliminarTurno,
   obtenerEquipamiento,
   obtenerMisReservas,
+  obtenerPago,
+  registrarPago,
 } from "@/lib/api";
 
 type Respuesta = { status: number; cuerpo: unknown };
@@ -37,6 +44,9 @@ function stubFetch(respuestas: Respuesta[]) {
   const pendientes = [...respuestas];
   const fetchMock = vi.fn(async () => {
     const { status, cuerpo } = pendientes.shift() ?? OK({});
+    if (status === 204) {
+      return new Response(null, { status });
+    }
     return new Response(JSON.stringify(cuerpo), {
       status,
       headers: { "Content-Type": "application/json" },
@@ -402,5 +412,243 @@ describe("obtenerEquipamiento", () => {
 
     const { url } = peticionDe(fetchMock, 0);
     expect(url).toBe(`${BASE_URL}/equipamiento?incluirInactivos=true&page=1&limit=50`);
+  });
+});
+
+const TURNO_API = {
+  id: "t-1",
+  cancha_id: "c-1",
+  disciplina_id: "d-1",
+  fecha: "2026-11-05",
+  hora_inicio: "18:00",
+  hora_fin: "19:00",
+  disponible: true,
+};
+
+const DATOS_TURNO = {
+  cancha_id: "c-1",
+  disciplina_id: "d-1",
+  fecha: "2026-11-05",
+  hora_inicio: "18:00",
+  hora_fin: "19:00",
+};
+
+describe("crearTurno", () => {
+  it("envia POST /turnos con el cuerpo snake_case y devuelve el turno", async () => {
+    const fetchMock = stubFetch([{ status: 201, cuerpo: TURNO_API }]);
+
+    const turno = await crearTurno(DATOS_TURNO);
+
+    expect(turno.id).toBe("t-1");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/turnos`);
+    expect(opciones.method).toBe("POST");
+    expect(opciones.body).toBe(
+      JSON.stringify({
+        cancha_id: "c-1",
+        disciplina_id: "d-1",
+        fecha: "2026-11-05",
+        hora_inicio: "18:00",
+        hora_fin: "19:00",
+      }),
+    );
+  });
+});
+
+describe("editarTurno", () => {
+  it("envia PATCH /turnos/:id con los campos editados", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, cuerpo: { ...TURNO_API, hora_inicio: "19:00", hora_fin: "20:00" } },
+    ]);
+
+    const turno = await editarTurno("t-1", {
+      hora_inicio: "19:00",
+      hora_fin: "20:00",
+    });
+
+    expect(turno.hora_inicio).toBe("19:00");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/turnos/t-1`);
+    expect(opciones.method).toBe("PATCH");
+    expect(opciones.body).toBe(
+      JSON.stringify({ hora_inicio: "19:00", hora_fin: "20:00" }),
+    );
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      {
+        status: 409,
+        cuerpo: {
+          message: "Ya existe un turno superpuesto en esa cancha y fecha.",
+        },
+      },
+    ]);
+
+    await expect(
+      editarTurno("t-1", { hora_inicio: "19:00", hora_fin: "20:00" }),
+    ).rejects.toThrow("Ya existe un turno superpuesto en esa cancha y fecha.");
+  });
+});
+
+describe("eliminarTurno", () => {
+  it("envia DELETE /turnos/:id y resuelve sin cuerpo ante 204", async () => {
+    const fetchMock = stubFetch([{ status: 204, cuerpo: null }]);
+
+    await expect(eliminarTurno("t-1")).resolves.toBeUndefined();
+
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/turnos/t-1`);
+    expect(opciones.method).toBe("DELETE");
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      {
+        status: 409,
+        cuerpo: {
+          message: "El turno tiene una reserva activa y no puede eliminarse.",
+        },
+      },
+    ]);
+
+    await expect(eliminarTurno("t-1")).rejects.toThrow(
+      "El turno tiene una reserva activa y no puede eliminarse.",
+    );
+  });
+});
+
+const PAGO_API = {
+  id: "p-1",
+  reservaId: "r-1",
+  monto: 3000,
+  metodoPago: "EFECTIVO",
+  estado: "PENDIENTE",
+  fechaPago: null,
+};
+
+describe("registrarPago", () => {
+  it("envia POST /reservas/:id/pagos con monto y metodoPago", async () => {
+    const fetchMock = stubFetch([{ status: 201, cuerpo: PAGO_API }]);
+
+    const pago = await registrarPago("r-1", {
+      monto: 3000,
+      metodoPago: "EFECTIVO",
+    });
+
+    expect(pago.id).toBe("p-1");
+    expect(pago.estado).toBe("PENDIENTE");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/reservas/r-1/pagos`);
+    expect(opciones.method).toBe("POST");
+    expect(opciones.body).toBe(
+      JSON.stringify({ monto: 3000, metodoPago: "EFECTIVO" }),
+    );
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      {
+        status: 409,
+        cuerpo: { message: "La reserva ya tiene un pago registrado." },
+      },
+    ]);
+
+    await expect(
+      registrarPago("r-1", { monto: 3000, metodoPago: "EFECTIVO" }),
+    ).rejects.toThrow("La reserva ya tiene un pago registrado.");
+  });
+});
+
+describe("confirmarPago", () => {
+  it("envia PATCH /pagos/:id/pagar y devuelve el pago PAGADO", async () => {
+    const fetchMock = stubFetch([
+      {
+        status: 200,
+        cuerpo: {
+          ...PAGO_API,
+          estado: "PAGADO",
+          fechaPago: "2026-11-03T10:00:00.000Z",
+        },
+      },
+    ]);
+
+    const pago = await confirmarPago("p-1");
+
+    expect(pago.estado).toBe("PAGADO");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/pagos/p-1/pagar`);
+    expect(opciones.method).toBe("PATCH");
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      {
+        status: 409,
+        cuerpo: {
+          message: "Solo se puede confirmar el cobro de un pago pendiente.",
+        },
+      },
+    ]);
+
+    await expect(confirmarPago("p-1")).rejects.toThrow(
+      "Solo se puede confirmar el cobro de un pago pendiente.",
+    );
+  });
+});
+
+describe("anularPago", () => {
+  it("envia PATCH /pagos/:id/anular y devuelve el pago ANULADO", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, cuerpo: { ...PAGO_API, estado: "ANULADO" } },
+    ]);
+
+    const pago = await anularPago("p-1");
+
+    expect(pago.estado).toBe("ANULADO");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/pagos/p-1/anular`);
+    expect(opciones.method).toBe("PATCH");
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      { status: 409, cuerpo: { message: "El pago ya está anulado." } },
+    ]);
+
+    await expect(anularPago("p-1")).rejects.toThrow(
+      "El pago ya está anulado.",
+    );
+  });
+});
+
+describe("obtenerPago", () => {
+  it("envia GET /reservas/:id/pagos y devuelve el pago", async () => {
+    const fetchMock = stubFetch([OK(PAGO_API)]);
+
+    const pago = await obtenerPago("r-1");
+
+    expect(pago?.id).toBe("p-1");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/reservas/r-1/pagos`);
+    expect(opciones.method).toBe("GET");
+  });
+
+  it("devuelve null cuando el backend responde 404 por falta de pago", async () => {
+    stubFetch([
+      { status: 404, cuerpo: { message: "El pago indicado no existe." } },
+    ]);
+
+    await expect(obtenerPago("r-1")).resolves.toBeNull();
+  });
+
+  it("propaga los errores que no son 404", async () => {
+    stubFetch([
+      { status: 500, cuerpo: { message: "Error interno del servidor." } },
+    ]);
+
+    await expect(obtenerPago("r-1")).rejects.toThrow(
+      "Error interno del servidor.",
+    );
   });
 });

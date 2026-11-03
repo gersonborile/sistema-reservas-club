@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 import { borrarSesion } from "@/lib/sesion";
@@ -12,12 +13,19 @@ function obtenerInicial(nombreCompleto: string): string {
   return partes[0].charAt(0).toUpperCase();
 }
 
+function claseNavegacion(activo: boolean): string {
+  return activo
+    ? "flex items-center border-l-2 border-neutral-900 bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900"
+    : "flex items-center px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50";
+}
+
 export default function LayoutPanelAdmin({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { cargando, claims, usuario } = useSesion();
   const autorizado = claims?.rol === "administrador";
   const nombre = usuario?.nombre ?? "";
@@ -52,35 +60,35 @@ export default function LayoutPanelAdmin({
         <nav className="flex-1 py-4">
           <ul className="space-y-1 px-2">
             <li>
-              <span className="flex items-center border-l-2 border-neutral-900 bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900">
+              <Link href="/admin" className={claseNavegacion(pathname === "/admin")}>
                 Resumen
-              </span>
+              </Link>
             </li>
             <li>
-              <a
-                href="#canchas"
-                className="flex items-center px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
-              >
+              <Link href="/admin#canchas" className={claseNavegacion(false)}>
                 Canchas
-              </a>
+              </Link>
             </li>
             <li>
-              <span className="flex cursor-default items-center px-3 py-2 text-sm text-neutral-400">
-                Turnos y franjas
-              </span>
-            </li>
-            <li>
-              <a
-                href="#equipamiento"
-                className="flex items-center px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
+              <Link
+                href="/admin/turnos"
+                className={claseNavegacion(pathname.startsWith("/admin/turnos"))}
               >
-                Equipamiento
-              </a>
+                Turnos y franjas
+              </Link>
             </li>
             <li>
-              <span className="flex cursor-default items-center px-3 py-2 text-sm text-neutral-400">
+              <Link href="/admin#equipamiento" className={claseNavegacion(false)}>
+                Equipamiento
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/admin/reservas"
+                className={claseNavegacion(pathname.startsWith("/admin/reservas"))}
+              >
                 Reservas
-              </span>
+              </Link>
             </li>
           </ul>
         </nav>

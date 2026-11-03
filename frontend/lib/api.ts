@@ -46,6 +46,19 @@ export type AlquilerApi = {
   items: { equipamientoId: string; cantidad: number; precioUnitario: number }[];
 };
 
+export type MetodoPago = "EFECTIVO" | "TRANSFERENCIA" | "TARJETA";
+
+export type EstadoPago = "PENDIENTE" | "PAGADO" | "ANULADO";
+
+export type PagoApi = {
+  id: string;
+  reservaId: string;
+  monto: number;
+  metodoPago: MetodoPago;
+  estado: EstadoPago;
+  fechaPago: string | null;
+};
+
 export type ReservaApi = {
   id: string;
   usuarioId: string;
@@ -357,6 +370,40 @@ export function obtenerTurnos(
   return obtenerTodasLasPaginas<TurnoApi>("/turnos", params);
 }
 
+export type DatosTurno = {
+  cancha_id: string;
+  disciplina_id: string;
+  fecha: string;
+  hora_inicio: string;
+  hora_fin: string;
+};
+
+/** POST /turnos: crea un turno (solo administrador). */
+export function crearTurno(datos: DatosTurno): Promise<TurnoApi> {
+  return peticion<TurnoApi>("/turnos", {
+    metodo: "POST",
+    cuerpo: datos,
+  });
+}
+
+/** PATCH /turnos/:id: edita un turno (solo administrador). */
+export function editarTurno(
+  id: string,
+  datos: Partial<DatosTurno>,
+): Promise<TurnoApi> {
+  return peticion<TurnoApi>(`/turnos/${id}`, {
+    metodo: "PATCH",
+    cuerpo: datos,
+  });
+}
+
+/** DELETE /turnos/:id: elimina un turno (solo administrador). */
+export function eliminarTurno(id: string): Promise<void> {
+  return peticion<void>(`/turnos/${id}`, {
+    metodo: "DELETE",
+  });
+}
+
 /** GET /disponibilidad: turnos libres de una cancha en una fecha. */
 export function obtenerDisponibilidad(
   canchaId: string,
@@ -379,7 +426,7 @@ export function obtenerMisReservas(): Promise<ReservaApi[]> {
   return peticion<ReservaApi[]>("/reservas/mis");
 }
 
-/** PATCH /reservas/:id/cancelar: cancela la reserva propia. */
+/** PATCH /reservas/:id/cancelar: cancela una reserva (la propia, o cualquiera si es administrador). */
 export function cancelarReserva(id: string): Promise<ReservaApi> {
   return peticion<ReservaApi>(`/reservas/${id}/cancelar`, {
     metodo: "PATCH",
@@ -428,6 +475,49 @@ export function editarEquipamiento(
   return peticion<EquipamientoApi>(`/equipamiento/${id}`, {
     metodo: "PUT",
     cuerpo: datos,
+  });
+}
+
+export type DatosPago = {
+  monto: number;
+  metodoPago: MetodoPago;
+};
+
+/** POST /reservas/:id/pagos: registra el pago (solo administrador). */
+export function registrarPago(
+  reservaId: string,
+  datos: DatosPago,
+): Promise<PagoApi> {
+  return peticion<PagoApi>(`/reservas/${reservaId}/pagos`, {
+    metodo: "POST",
+    cuerpo: datos,
+  });
+}
+
+/**
+ * GET /reservas/:id/pagos. Un `404` significa que la reserva no tiene pago
+ * registrado y se traduce a `null`; el resto de los errores se propagan.
+ */
+export async function obtenerPago(reservaId: string): Promise<PagoApi | null> {
+  try {
+    return await peticion<PagoApi>(`/reservas/${reservaId}/pagos`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
+  }
+}
+
+/** PATCH /pagos/:id/pagar: confirma el cobro de un pago pendiente. */
+export function confirmarPago(id: string): Promise<PagoApi> {
+  return peticion<PagoApi>(`/pagos/${id}/pagar`, {
+    metodo: "PATCH",
+  });
+}
+
+/** PATCH /pagos/:id/anular: anula un pago pendiente o pagado. */
+export function anularPago(id: string): Promise<PagoApi> {
+  return peticion<PagoApi>(`/pagos/${id}/anular`, {
+    metodo: "PATCH",
   });
 }
 

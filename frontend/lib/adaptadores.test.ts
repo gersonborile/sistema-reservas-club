@@ -1,17 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import type { CanchaApi, EquipamientoApi, ReservaApi } from "@/lib/api";
+import type {
+  CanchaApi,
+  EquipamientoApi,
+  PagoApi,
+  ReservaApi,
+  TurnoApi,
+} from "@/lib/api";
 import {
+  accionesDePago,
   aEquipamientoUI,
   aReservaUI,
+  aTurnoUI,
   aMapaNombres,
+  montoSugerido,
   contarCanchasActivas,
   contarPocoStock,
   contarReservasDeHoy,
   disciplinaIdsParaEditar,
+  filtrarReservasPorEstado,
+  ordenarReservas,
   obtenerProximaReserva,
   puedeCancelarReserva,
   textoItemsAlquiler,
+  validarDatosTurno,
+  validarHorario,
   validarStock,
 } from "@/lib/adaptadores";
 import type { ReservaUI } from "@/lib/adaptadores";
@@ -52,6 +65,97 @@ function reservaApiDe(
     },
   };
 }
+
+const TURNO_BACKEND: TurnoApi = {
+  id: "t-1",
+  cancha_id: "c-1",
+  disciplina_id: "d-1",
+  fecha: "2026-11-05",
+  hora_inicio: "18:00",
+  hora_fin: "19:00",
+  disponible: true,
+};
+
+describe("aTurnoUI", () => {
+  it("mapea hora de inicio, hora de fin y disciplina", () => {
+    expect(aTurnoUI(TURNO_BACKEND)).toEqual({
+      id: "t-1",
+      horaInicio: "18:00",
+      horaFin: "19:00",
+      disciplinaId: "d-1",
+      estado: "libre",
+    });
+  });
+
+  it("marca ocupado cuando el turno no esta disponible", () => {
+    expect(aTurnoUI({ ...TURNO_BACKEND, disponible: false }).estado).toBe(
+      "ocupado",
+    );
+  });
+});
+
+function pagoDe(estado: PagoApi["estado"]): PagoApi {
+  return {
+    id: "p-1",
+    reservaId: "r-1",
+    monto: 3000,
+    metodoPago: "EFECTIVO",
+    estado,
+    fechaPago: null,
+  };
+}
+
+describe("accionesDePago", () => {
+  it("ofrece registrar cuando la reserva confirmada no tiene pago", () => {
+    expect(accionesDePago("confirmada", null)).toEqual(["registrar"]);
+  });
+
+  it("no ofrece acciones cuando la reserva cancelada no tiene pago", () => {
+    expect(accionesDePago("cancelada", null)).toEqual([]);
+  });
+
+  it("ofrece confirmar y anular con un pago pendiente", () => {
+    expect(accionesDePago("confirmada", pagoDe("PENDIENTE"))).toEqual([
+      "confirmar",
+      "anular",
+    ]);
+  });
+
+  it("ofrece solo anular con un pago pagado", () => {
+    expect(accionesDePago("confirmada", pagoDe("PAGADO"))).toEqual(["anular"]);
+  });
+
+  it("deja el pago anulado en solo lectura", () => {
+    expect(accionesDePago("confirmada", pagoDe("ANULADO"))).toEqual([]);
+  });
+
+  it("ofrece solo anular un pago pendiente de una reserva cancelada", () => {
+    expect(accionesDePago("cancelada", pagoDe("PENDIENTE"))).toEqual(["anular"]);
+  });
+
+  it("ofrece solo anular un pago pagado de una reserva cancelada", () => {
+    expect(accionesDePago("cancelada", pagoDe("PAGADO"))).toEqual(["anular"]);
+  });
+
+  it("deja en solo lectura el pago anulado de una reserva cancelada", () => {
+    expect(accionesDePago("cancelada", pagoDe("ANULADO"))).toEqual([]);
+  });
+});
+
+describe("montoSugerido", () => {
+  it("devuelve el total del alquiler cuando la reserva tiene uno", () => {
+    const reserva = aReservaUI({
+      ...CON_TURNO_Y_SIN_ALQUILER,
+      alquiler: { id: "alq-1", total: 3100, items: [] },
+    });
+
+    expect(montoSugerido(reserva)).toBe(3100);
+  });
+
+  it("devuelve vacio cuando la reserva no tiene alquiler", () => {
+    expect(montoSugerido(aReservaUI(CON_TURNO_Y_SIN_ALQUILER))).toBeNull();
+  });
+});
 
 describe("aEquipamientoUI", () => {
   it("normaliza el precio y el stock a numeros", () => {
@@ -139,6 +243,66 @@ describe("validarStock", () => {
 
   it("acepta un entero positivo", () => {
     expect(validarStock("30")).toBeNull();
+  });
+});
+
+const ERROR_HORA_OBLIGATORIA = "La hora es obligatoria.";
+const ERROR_HORA_FORMATO = "Usá el formato HH:mm.";
+
+describe("validarHorario", () => {
+  it("rechaza un texto vacio como obligatorio", () => {
+    expect(validarHorario("")).toBe(ERROR_HORA_OBLIGATORIA);
+  });
+
+  it("rechaza un texto que no tiene formato HH:mm", () => {
+    expect(validarHorario("9:00")).toBe(ERROR_HORA_FORMATO);
+  });
+
+  it("acepta una hora valida en formato HH:mm", () => {
+    expect(validarHorario("18:30")).toBeNull();
+  });
+});
+
+describe("validarDatosTurno", () => {
+  const VALIDO = {
+    disciplinaId: "d-1",
+    fecha: "2026-11-04",
+    horaInicio: "10:00",
+    horaFin: "11:00",
+  };
+
+  it("acepta un turno con todos los campos validos", () => {
+    expect(validarDatosTurno(VALIDO)).toBeNull();
+  });
+
+  it("pide elegir una disciplina", () => {
+    expect(validarDatosTurno({ ...VALIDO, disciplinaId: "" })).toBe(
+      "Elegí una disciplina.",
+    );
+  });
+
+  it("pide la fecha", () => {
+    expect(validarDatosTurno({ ...VALIDO, fecha: "" })).toBe(
+      "La fecha es obligatoria.",
+    );
+  });
+
+  it("pide la hora de inicio", () => {
+    expect(validarDatosTurno({ ...VALIDO, horaInicio: "" })).toBe(
+      "La hora es obligatoria.",
+    );
+  });
+
+  it("rechaza una hora de fin sin formato HH:mm", () => {
+    expect(validarDatosTurno({ ...VALIDO, horaFin: "9:00" })).toBe(
+      "Usá el formato HH:mm.",
+    );
+  });
+
+  it("informa primero la disciplina cuando faltan varios campos", () => {
+    expect(
+      validarDatosTurno({ disciplinaId: "", fecha: "", horaInicio: "", horaFin: "" }),
+    ).toBe("Elegí una disciplina.");
   });
 });
 
@@ -245,6 +409,52 @@ const CONFIRMADA_AYER = reservaDeUI("r-5", "2026-11-02", "16:00", "confirmada");
 const CONFIRMADA_PASADA = reservaDeUI("r-6", "2026-11-03", "14:00", "confirmada");
 const CANCELADA_FUTURA = reservaDeUI("r-7", "2026-11-03", "17:00", "cancelada");
 const CONFIRMADA_AJENA = reservaDeUI("r-9", "2026-11-03", "16:00", "confirmada", "u-2");
+
+describe("ordenarReservas", () => {
+  it("ordena por fecha y hora ascendentes, con las mas proximas primero", () => {
+    const desordenadas = [
+      reservaDeUI("r-b", "2026-11-06", "09:00", "confirmada"),
+      reservaDeUI("r-a", "2026-11-05", "18:00", "confirmada"),
+      reservaDeUI("r-c", "2026-11-05", "09:00", "confirmada"),
+    ];
+
+    expect(ordenarReservas(desordenadas).map((reserva) => reserva.id)).toEqual([
+      "r-c",
+      "r-a",
+      "r-b",
+    ]);
+  });
+});
+
+describe("filtrarReservasPorEstado", () => {
+  const lista = [
+    reservaDeUI("r-1", "2026-11-05", "09:00", "confirmada"),
+    reservaDeUI("r-2", "2026-11-05", "10:00", "cancelada"),
+    reservaDeUI("r-3", "2026-11-06", "11:00", "confirmada"),
+  ];
+
+  it("con Todas devuelve la lista completa", () => {
+    expect(
+      filtrarReservasPorEstado(lista, "Todas").map((reserva) => reserva.id),
+    ).toEqual(["r-1", "r-2", "r-3"]);
+  });
+
+  it("con Confirmadas deja solo las confirmadas", () => {
+    expect(
+      filtrarReservasPorEstado(lista, "Confirmadas").map(
+        (reserva) => reserva.id,
+      ),
+    ).toEqual(["r-1", "r-3"]);
+  });
+
+  it("con Canceladas deja solo las canceladas", () => {
+    expect(
+      filtrarReservasPorEstado(lista, "Canceladas").map(
+        (reserva) => reserva.id,
+      ),
+    ).toEqual(["r-2"]);
+  });
+});
 
 describe("obtenerProximaReserva", () => {
   it("devuelve la CONFIRMADA futura con menor inicio", () => {

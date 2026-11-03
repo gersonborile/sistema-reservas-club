@@ -4,11 +4,43 @@ import type {
   DisciplinaApi,
   EquipamientoApi,
   EstadoCancha,
+  PagoApi,
   ReservaApi,
   TurnoApi,
 } from "@/lib/api";
 
 const ERROR_STOCK = "El stock debe ser un entero mayor o igual a 0.";
+const ERROR_HORA_OBLIGATORIA = "La hora es obligatoria.";
+const ERROR_HORA_FORMATO = "Usá el formato HH:mm.";
+const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/**
+ * Valida una hora de formulario: obligatoria y en formato HH:mm (24 h).
+ * Devuelve el mensaje de error o `null` si es válida.
+ */
+export function validarHorario(texto: string): string | null {
+  if (texto.trim() === "") return ERROR_HORA_OBLIGATORIA;
+  if (!FORMATO_HORA.test(texto)) return ERROR_HORA_FORMATO;
+  return null;
+}
+
+export type DatosTurnoFormulario = {
+  disciplinaId: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+};
+
+/**
+ * Valida los campos del formulario de turno y devuelve el primer error (en el
+ * orden disciplina, fecha, hora de inicio, hora de fin) o `null` si todo es
+ * válido. Solo valida lo obligatorio y el formato: el resto lo decide el backend.
+ */
+export function validarDatosTurno(datos: DatosTurnoFormulario): string | null {
+  if (!datos.disciplinaId) return "Elegí una disciplina.";
+  if (!datos.fecha) return "La fecha es obligatoria.";
+  return validarHorario(datos.horaInicio) ?? validarHorario(datos.horaFin);
+}
 
 /**
  * Valida el texto del campo stock. Devuelve el mensaje de error o `null` si
@@ -23,6 +55,35 @@ export function validarStock(texto: string): string | null {
 }
 
 export type EstadoReservaUI = "confirmada" | "cancelada";
+
+export type AccionPago = "registrar" | "confirmar" | "anular";
+
+/**
+ * Acciones de pago disponibles para una reserva según su estado y su pago.
+ * Un pago ANULADO es de solo lectura.
+ */
+export function accionesDePago(
+  estadoReserva: EstadoReservaUI,
+  pago: PagoApi | null,
+): AccionPago[] {
+  if (!pago) {
+    return estadoReserva === "confirmada" ? ["registrar"] : [];
+  }
+  // No se cobra una reserva cancelada: solo se puede anular su pago.
+  if (pago.estado === "PENDIENTE") {
+    return estadoReserva === "cancelada" ? ["anular"] : ["confirmar", "anular"];
+  }
+  if (pago.estado === "PAGADO") return ["anular"];
+  return [];
+}
+
+/**
+ * Monto inicial para el formulario de pago: el total del alquiler si la
+ * reserva tiene uno; `null` si no. No calcula precio de cancha.
+ */
+export function montoSugerido(reserva: ReservaUI): number | null {
+  return reserva.alquiler ? reserva.alquiler.total : null;
+}
 
 export type ReservaUI = {
   id: string;
@@ -153,6 +214,24 @@ export function etiquetaDisciplinas(cancha: CanchaUI): string {
   return cancha.disciplinas.map((d) => aEtiquetaDisciplina(d.nombre)).join(" · ");
 }
 
+export type TurnoUI = {
+  id: string;
+  horaInicio: string;
+  horaFin: string;
+  disciplinaId: string;
+  estado: "libre" | "ocupado";
+};
+
+export function aTurnoUI(turno: TurnoApi): TurnoUI {
+  return {
+    id: turno.id,
+    horaInicio: turno.hora_inicio,
+    horaFin: turno.hora_fin,
+    disciplinaId: turno.disciplina_id,
+    estado: turno.disponible ? "libre" : "ocupado",
+  };
+}
+
 export function aFranjaUI(turno: TurnoApi): FranjaUI {
   return {
     id: turno.id,
@@ -221,6 +300,31 @@ export function textoItemsAlquiler(
 
 export function aReservasUI(reservas: ReservaApi[]): ReservaUI[] {
   return reservas.map(aReservaUI);
+}
+
+/** Reservas ordenadas por fecha y hora ascendentes (las más próximas primero). */
+export function ordenarReservas(reservas: ReservaUI[]): ReservaUI[] {
+  return [...reservas].sort((a, b) => {
+    const porFecha = a.fecha.localeCompare(b.fecha);
+    if (porFecha !== 0) return porFecha;
+    return a.hora.localeCompare(b.hora);
+  });
+}
+
+export type FiltroReservaEstado = "Todas" | "Confirmadas" | "Canceladas";
+
+/** Filtra reservas por el estado elegido en el listado. */
+export function filtrarReservasPorEstado(
+  reservas: ReservaUI[],
+  filtro: FiltroReservaEstado,
+): ReservaUI[] {
+  if (filtro === "Confirmadas") {
+    return reservas.filter((reserva) => reserva.estado === "confirmada");
+  }
+  if (filtro === "Canceladas") {
+    return reservas.filter((reserva) => reserva.estado === "cancelada");
+  }
+  return reservas;
 }
 
 /** Inicio local de una reserva (fecha ISO + hora "HH:MM"); null si es inválida. */

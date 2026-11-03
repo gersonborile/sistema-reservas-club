@@ -7,6 +7,37 @@ export const ESTILOS_BOTON_SECUNDARIO =
 export const ESTILOS_BOTON_SECUNDARIO_DESHABILITADO =
   "cursor-not-allowed rounded border border-neutral-200 bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-400";
 
+export function estilosBotonSecundario(deshabilitado: boolean): string {
+  return deshabilitado
+    ? ESTILOS_BOTON_SECUNDARIO_DESHABILITADO
+    : ESTILOS_BOTON_SECUNDARIO;
+}
+
+/** Error de carga con un botón para reintentar, que informa mientras espera. */
+export function ErrorConReintento({
+  mensaje,
+  reintentando,
+  onReintentar,
+}: {
+  mensaje: string;
+  reintentando: boolean;
+  onReintentar: () => void;
+}) {
+  return (
+    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <p className="text-sm text-red-600">{mensaje}</p>
+      <button
+        type="button"
+        onClick={onReintentar}
+        disabled={reintentando}
+        className={`mt-3 ${estilosBotonPrincipal(reintentando)}`}
+      >
+        {reintentando ? "Reintentando..." : "Reintentar"}
+      </button>
+    </div>
+  );
+}
+
 export function estilosBotonPrincipal(deshabilitado: boolean): string {
   return `rounded px-4 py-2 text-sm font-medium ${
     deshabilitado
