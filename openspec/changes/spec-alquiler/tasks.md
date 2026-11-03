@@ -20,9 +20,9 @@
 
 ## 4. Frontend (después del backend, al conectar front y back)
 
-- [ ] 4.1 Implementar el flujo de alquiler sobre una reserva existente (seleccionar equipamiento del catálogo con precio, cantidades y total) y verificar contra el backend en local
-- [ ] 4.2 Mostrar el alquiler y sus montos en "mis reservas" y verificar los datos reales contra `GET /reservas/mis`
-- [ ] 4.3 Mostrar/ocultar la acción "alquilar" según rol y titularidad y verificar que un `USUARIO` no la ve sobre reservas ajenas
+- [x] 4.1 Implementar el flujo de alquiler sobre una reserva existente (seleccionar equipamiento del catálogo con precio, cantidades y total) y verificar contra el backend en local
+- [x] 4.2 Mostrar el alquiler y sus montos en "mis reservas" y verificar los datos reales contra `GET /reservas/mis`
+- [x] 4.3 Mostrar/ocultar la acción "alquilar" según rol y titularidad y verificar que un `USUARIO` no la ve sobre reservas ajenas
 
 ## 5. Integración y verificación
 
