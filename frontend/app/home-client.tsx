@@ -6,24 +6,28 @@ import { useEffect, useState } from "react";
 import {
   aCanchaUI,
   aEtiquetaDisciplina,
+  aMapaNombres,
+  aReservasUI,
   etiquetaDisciplinas,
+  obtenerProximaReserva,
   primerTurnoLibreAhora,
+  textoItemsAlquiler,
 } from "@/lib/adaptadores";
-import type { DisciplinaApi, TurnoApi } from "@/lib/api";
+import type { ReservaUI } from "@/lib/adaptadores";
+import type { DisciplinaApi, EquipamientoApi, TurnoApi } from "@/lib/api";
 import {
   mensajeDeError,
   obtenerCanchas,
   obtenerDisciplinas,
   obtenerDisponibilidad,
+  obtenerEquipamiento,
+  obtenerMisReservas,
 } from "@/lib/api";
-import type { Reserva } from "@/lib/mock-reservas";
-import { obtenerProximaReserva } from "@/lib/mock-reservas";
 import {
   diaSemana,
   formatearFecha,
   obtenerFechaLocalHoy,
   obtenerHoraLocalAhora,
-  sumarUnaHora,
 } from "@/lib/fechas";
 import { useSesion } from "@/lib/use-sesion";
 
@@ -38,43 +42,64 @@ type DatosHome = {
   clave: number;
   disciplinas: DisciplinaApi[];
   disponibles: DisponibleAhora[];
+  proximaReserva: ReservaUI | null;
+  nombres: Record<string, string>;
   error: string | null;
 };
 
-function formatearMomento(reserva: Reserva): string {
-  const rango = `${reserva.hora} a ${sumarUnaHora(reserva.hora)} hs`;
+function formatearMomento(reserva: ReservaUI): string {
+  const rango = `${reserva.hora} a ${reserva.horaFin} hs`;
   if (reserva.fecha === obtenerFechaLocalHoy()) {
     return `Hoy, ${rango}`;
   }
   return `${diaSemana(reserva.fecha)} ${formatearFecha(reserva.fecha)}, ${rango}`;
 }
 
-function formatearEquipamiento(reserva: Reserva): string {
-  if (reserva.equipamiento.length === 0) return "Sin equipamiento";
-  return reserva.equipamiento
-    .map((item) => `${item.cantidad} ${item.nombre.toLowerCase()}`)
-    .join(", ");
+function formatearEquipamiento(
+  reserva: ReservaUI,
+  nombres: Record<string, string>,
+): string {
+  if (!reserva.alquiler || reserva.alquiler.items.length === 0) {
+    return "Sin equipamiento";
+  }
+  return textoItemsAlquiler(reserva.alquiler.items, nombres);
 }
 
 export default function HomeClient() {
-  const { claims, usuario } = useSesion();
+  const { usuario } = useSesion();
   const nombre = usuario?.nombre ?? "";
-  const proximaReserva = claims ? obtenerProximaReserva(claims.userId) : null;
   const [datos, setDatos] = useState<DatosHome | null>(null);
   const [intento, setIntento] = useState(0);
   const cargando = datos?.clave !== intento;
   const error = datos?.error ?? null;
   const disciplinas = datos?.disciplinas ?? [];
   const disponiblesAhora = datos?.disponibles ?? [];
+  const proximaReserva = datos?.proximaReserva ?? null;
+  const nombres = datos?.nombres ?? {};
 
   useEffect(() => {
     let cancelado = false;
     async function cargar() {
       try {
-        const [listaDisciplinas, canchas] = await Promise.all([
+        const [listaDisciplinas, canchas, misReservas] = await Promise.all([
           obtenerDisciplinas(),
           obtenerCanchas({ estado: "DISPONIBLE" }),
+          obtenerMisReservas(),
         ]);
+        if (cancelado) return;
+        const reservasSociedad = aReservasUI(misReservas).filter(
+          (reserva) => reserva.usuarioId === usuario?.id,
+        );
+        let catalogo: EquipamientoApi[] = [];
+        if (reservasSociedad.some((reserva) => reserva.alquiler)) {
+          // El catálogo es solo para mostrar nombres; si falla, se muestra el
+          // respaldo y la pantalla no se rompe.
+          try {
+            catalogo = await obtenerEquipamiento({ incluirInactivos: true });
+          } catch {
+            catalogo = [];
+          }
+        }
         const fecha = obtenerFechaLocalHoy();
         const ahora = obtenerHoraLocalAhora();
         const libres = await Promise.all(
@@ -101,6 +126,8 @@ export default function HomeClient() {
           clave: intento,
           disciplinas: listaDisciplinas,
           disponibles: disponibles.slice(0, 3),
+          proximaReserva: obtenerProximaReserva(reservasSociedad, new Date()),
+          nombres: aMapaNombres(catalogo),
           error: null,
         });
       } catch (e) {
@@ -109,6 +136,8 @@ export default function HomeClient() {
           clave: intento,
           disciplinas: [],
           disponibles: [],
+          proximaReserva: null,
+          nombres: {},
           error: mensajeDeError(e),
         });
       }
@@ -117,7 +146,7 @@ export default function HomeClient() {
     return () => {
       cancelado = true;
     };
-  }, [intento]);
+  }, [intento, usuario?.id]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -143,13 +172,13 @@ export default function HomeClient() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="font-bold text-neutral-900">
-                  {proximaReserva.disciplina} · {proximaReserva.canchaNombre}
+                  {proximaReserva.canchaNombre}
                 </p>
                 <p className="mt-1 text-sm text-neutral-700">
                   {formatearMomento(proximaReserva)}
                 </p>
                 <p className="mt-1 text-sm text-neutral-600">
-                  Equipamiento: {formatearEquipamiento(proximaReserva)}
+                  Equipamiento: {formatearEquipamiento(proximaReserva, nombres)}
                 </p>
               </div>
               <div className="flex gap-2">
