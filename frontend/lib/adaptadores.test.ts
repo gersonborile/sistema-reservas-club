@@ -1,12 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import type { EquipamientoApi, ReservaApi } from "@/lib/api";
+import type { CanchaApi, EquipamientoApi, ReservaApi } from "@/lib/api";
 import {
+  aEquipamientoUI,
   aReservaUI,
   aMapaNombres,
+  contarCanchasActivas,
+  contarPocoStock,
+  contarReservasDeHoy,
+  disciplinaIdsParaEditar,
   obtenerProximaReserva,
   puedeCancelarReserva,
   textoItemsAlquiler,
+  validarStock,
 } from "@/lib/adaptadores";
 import type { ReservaUI } from "@/lib/adaptadores";
 
@@ -24,6 +30,145 @@ const CON_TURNO_Y_SIN_ALQUILER: ReservaApi = {
     cancha: { id: "c-2", nombre: "Cancha 2" },
   },
 };
+
+function reservaApiDe(
+  id: string,
+  fecha: string,
+  estado: ReservaApi["estado"],
+  usuarioId = "u-1",
+): ReservaApi {
+  return {
+    id,
+    usuarioId,
+    turnoId: `t-${id}`,
+    estado,
+    createdAt: "2026-11-01T10:00:00.000Z",
+    alquiler: null,
+    turno: {
+      fecha,
+      horaInicio: "18:00",
+      horaFin: "19:00",
+      cancha: { id: "c-1", nombre: "Cancha 1" },
+    },
+  };
+}
+
+describe("aEquipamientoUI", () => {
+  it("normaliza el precio y el stock a numeros", () => {
+    const api = {
+      id: "eq-1",
+      nombre: "Paletas",
+      disciplinaId: "d-2",
+      disciplina: { id: "d-2", nombre: "padel" },
+      stockTotal: "12" as unknown as number,
+      stockDisponible: "7" as unknown as number,
+      precioUnitario: "1500.50" as unknown as number,
+      activo: true,
+      disponible: true,
+    };
+
+    expect(aEquipamientoUI(api)).toEqual({
+      id: "eq-1",
+      nombre: "Paletas",
+      disciplinaId: "d-2",
+      disciplinaNombre: "padel",
+      stockTotal: 12,
+      stockDisponible: 7,
+      precioUnitario: 1500.5,
+      activo: true,
+    });
+  });
+});
+
+describe("contarCanchasActivas", () => {
+  it("cuenta las que no estan en mantenimiento", () => {
+    const canchas = [
+      { estado: "DISPONIBLE" },
+      { estado: "EN_MANTENIMIENTO" },
+      { estado: "OCUPADA" },
+    ] as CanchaApi[];
+
+    expect(contarCanchasActivas(canchas)).toBe(2);
+  });
+});
+
+describe("contarPocoStock", () => {
+  it("cuenta las de stock total menor o igual al umbral", () => {
+    const items = [
+      { stockTotal: 0 },
+      { stockTotal: 5 },
+      { stockTotal: 6 },
+      { stockTotal: 20 },
+    ] as EquipamientoApi[];
+
+    expect(contarPocoStock(items)).toBe(2);
+  });
+});
+
+describe("contarReservasDeHoy", () => {
+  it("cuenta las CONFIRMADA de hoy de todos los usuarios", () => {
+    const reservas = [
+      reservaApiDe("r-1", "2026-11-03", "CONFIRMADA", "u-1"),
+      reservaApiDe("r-2", "2026-11-03", "CONFIRMADA", "u-2"),
+      reservaApiDe("r-3", "2026-11-03", "CANCELADA", "u-3"),
+      reservaApiDe("r-4", "2026-11-04", "CONFIRMADA", "u-4"),
+    ];
+
+    expect(contarReservasDeHoy(reservas, "2026-11-03")).toBe(2);
+  });
+});
+
+const ERROR_STOCK = "El stock debe ser un entero mayor o igual a 0.";
+
+describe("validarStock", () => {
+  it("rechaza un valor vacio", () => {
+    expect(validarStock("")).toBe(ERROR_STOCK);
+  });
+
+  it("rechaza un decimal", () => {
+    expect(validarStock("1.5")).toBe(ERROR_STOCK);
+  });
+
+  it("rechaza un negativo", () => {
+    expect(validarStock("-1")).toBe(ERROR_STOCK);
+  });
+
+  it("acepta cero", () => {
+    expect(validarStock("0")).toBeNull();
+  });
+
+  it("acepta un entero positivo", () => {
+    expect(validarStock("30")).toBeNull();
+  });
+});
+
+describe("disciplinaIdsParaEditar", () => {
+  it("conserva todas las disciplinas existentes al editar", () => {
+    expect(disciplinaIdsParaEditar(["d-1", "d-2"], "d-1")).toEqual([
+      "d-1",
+      "d-2",
+    ]);
+  });
+
+  it("agrega la disciplina elegida sin duplicar las existentes", () => {
+    expect(disciplinaIdsParaEditar(["d-1", "d-2"], "d-3")).toEqual([
+      "d-1",
+      "d-2",
+      "d-3",
+    ]);
+  });
+
+  it("usa la elegida cuando la cancha no tiene disciplinas", () => {
+    expect(disciplinaIdsParaEditar([], "d-1")).toEqual(["d-1"]);
+  });
+
+  it("con una disciplina vacia conserva solo las existentes", () => {
+    expect(disciplinaIdsParaEditar(["d-1", "d-2"], "")).toEqual([
+      "d-1",
+      "d-2",
+    ]);
+  });
+});
 
 describe("aReservaUI", () => {
   it("mapea cancha, fecha y hora desde el turno", () => {

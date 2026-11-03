@@ -1,10 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  ApiError,
   BASE_URL,
   cancelarReserva,
   crearAlquiler,
+  crearCancha,
+  crearEquipamiento,
   crearReserva,
+  editarCancha,
+  editarEquipamiento,
   obtenerEquipamiento,
   obtenerMisReservas,
 } from "@/lib/api";
@@ -58,6 +63,209 @@ const EQUIPAMIENTO_BASE = {
   activo: true,
   disponible: true,
 };
+
+const CANCHA_API = {
+  id: "c-1",
+  nombre: "Cancha 1",
+  ubicacion: "Sector A",
+  capacidad: 4,
+  estado: "DISPONIBLE",
+  disciplinas: [{ id: "d-1", nombre: "tenis" }],
+};
+
+function datosCancha(
+  cambios: Partial<{
+    nombre: string;
+    ubicacion: string;
+    capacidad: number;
+    estado: "DISPONIBLE" | "OCUPADA" | "EN_MANTENIMIENTO";
+    disciplinaIds: string[];
+  }> = {},
+) {
+  return {
+    nombre: "Cancha 1",
+    ubicacion: "Sector A",
+    capacidad: 4,
+    estado: "DISPONIBLE" as const,
+    disciplinaIds: ["d-1"],
+    ...cambios,
+  };
+}
+
+describe("crearCancha", () => {
+  it("envia POST /canchas con los campos del backend y devuelve la cancha", async () => {
+    const fetchMock = stubFetch([{ status: 201, cuerpo: CANCHA_API }]);
+
+    const cancha = await crearCancha(datosCancha());
+
+    expect(cancha.id).toBe("c-1");
+    expect(cancha.estado).toBe("DISPONIBLE");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/canchas`);
+    expect(opciones.method).toBe("POST");
+    expect(opciones.body).toBe(
+      JSON.stringify({
+        nombre: "Cancha 1",
+        ubicacion: "Sector A",
+        capacidad: 4,
+        estado: "DISPONIBLE",
+        disciplinaIds: ["d-1"],
+      }),
+    );
+  });
+
+  it("expone los campos invalidos de un 400", async () => {
+    stubFetch([
+      {
+        status: 400,
+        cuerpo: {
+          message: "La petición no es válida.",
+          campos: [{ campo: "nombre", mensaje: "El nombre es obligatorio." }],
+        },
+      },
+    ]);
+
+    const error = await crearCancha(datosCancha({ nombre: "" })).catch(
+      (e: unknown) => e,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).campos).toEqual([
+      { campo: "nombre", mensaje: "El nombre es obligatorio." },
+    ]);
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      {
+        status: 409,
+        cuerpo: { message: "Ya existe una cancha con ese nombre." },
+      },
+    ]);
+
+    await expect(crearCancha(datosCancha())).rejects.toThrow(
+      "Ya existe una cancha con ese nombre.",
+    );
+  });
+});
+
+describe("editarCancha", () => {
+  it("envia PUT /canchas/:id con los campos editados", async () => {
+    const fetchMock = stubFetch([
+      { status: 200, cuerpo: { ...CANCHA_API, nombre: "Cancha Central" } },
+    ]);
+
+    const cancha = await editarCancha("c-1", {
+      nombre: "Cancha Central",
+      disciplinaIds: ["d-1", "d-2"],
+    });
+
+    expect(cancha.nombre).toBe("Cancha Central");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/canchas/c-1`);
+    expect(opciones.method).toBe("PUT");
+    expect(opciones.body).toBe(
+      JSON.stringify({
+        nombre: "Cancha Central",
+        disciplinaIds: ["d-1", "d-2"],
+      }),
+    );
+  });
+});
+
+describe("crearEquipamiento", () => {
+  it("envia POST /equipamiento con nombre, disciplina, stock y precio", async () => {
+    const fetchMock = stubFetch([
+      {
+        status: 201,
+        cuerpo: { id: "eq-1", nombre: "Paletas", ...EQUIPAMIENTO_BASE },
+      },
+    ]);
+
+    const item = await crearEquipamiento({
+      nombre: "Paletas",
+      disciplinaId: "d-1",
+      stockTotal: 12,
+      precioUnitario: 1500.5,
+    });
+
+    expect(item.id).toBe("eq-1");
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/equipamiento`);
+    expect(opciones.method).toBe("POST");
+    expect(opciones.body).toBe(
+      JSON.stringify({
+        nombre: "Paletas",
+        disciplinaId: "d-1",
+        stockTotal: 12,
+        precioUnitario: 1500.5,
+      }),
+    );
+  });
+
+  it("expone los campos invalidos de un 400", async () => {
+    stubFetch([
+      {
+        status: 400,
+        cuerpo: {
+          message: "La petición no es válida.",
+          campos: [
+            { campo: "precioUnitario", mensaje: "El precio unitario no puede ser negativo." },
+          ],
+        },
+      },
+    ]);
+
+    const error = await crearEquipamiento({
+      nombre: "Paletas",
+      disciplinaId: "d-1",
+      stockTotal: 12,
+      precioUnitario: -1,
+    }).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).campos).toEqual([
+      {
+        campo: "precioUnitario",
+        mensaje: "El precio unitario no puede ser negativo.",
+      },
+    ]);
+  });
+});
+
+describe("editarEquipamiento", () => {
+  it("envia PUT /equipamiento/:id con el stock total", async () => {
+    const fetchMock = stubFetch([
+      {
+        status: 200,
+        cuerpo: { id: "eq-1", nombre: "Pelotas", ...EQUIPAMIENTO_BASE, stockTotal: 30 },
+      },
+    ]);
+
+    const item = await editarEquipamiento("eq-1", { stockTotal: 30 });
+
+    expect(item.stockTotal).toBe(30);
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/equipamiento/eq-1`);
+    expect(opciones.method).toBe("PUT");
+    expect(opciones.body).toBe(JSON.stringify({ stockTotal: 30 }));
+  });
+
+  it("propaga el mensaje del backend ante 409", async () => {
+    stubFetch([
+      {
+        status: 409,
+        cuerpo: {
+          message: "El stock total no puede ser menor a la cantidad alquilada.",
+        },
+      },
+    ]);
+
+    await expect(editarEquipamiento("eq-1", { stockTotal: 1 })).rejects.toThrow(
+      "El stock total no puede ser menor a la cantidad alquilada.",
+    );
+  });
+});
 
 describe("crearReserva", () => {
   it("envia POST /reservas con el turnoId y devuelve la reserva", async () => {

@@ -283,6 +283,14 @@ export function mensajeDeError(error: unknown): string {
   return "Algo salió mal. Intentalo de nuevo.";
 }
 
+/** Mensaje de permisos ante un 403; el resto delega en `mensajeDeError`. */
+export function mensajeDeErrorAdmin(error: unknown): string {
+  if (error instanceof ApiError && error.status === 403) {
+    return "No tenés permisos suficientes para realizar esta acción.";
+  }
+  return mensajeDeError(error);
+}
+
 /** GET /canchas, recorriendo todas las páginas. */
 export function obtenerCanchas(
   filtros: { disciplina?: string; estado?: EstadoCancha } = {},
@@ -296,6 +304,41 @@ export function obtenerCanchas(
 /** GET /canchas/:id */
 export function obtenerCancha(id: string): Promise<CanchaApi> {
   return peticion<CanchaApi>(`/canchas/${id}`);
+}
+
+export type DatosCancha = {
+  nombre: string;
+  ubicacion: string;
+  capacidad: number;
+  estado: EstadoCancha;
+  disciplinaIds: string[];
+};
+
+/** POST /canchas */
+export function crearCancha(datos: DatosCancha): Promise<CanchaApi> {
+  return peticion<CanchaApi>("/canchas", {
+    metodo: "POST",
+    cuerpo: datos,
+  });
+}
+
+/** PUT /canchas/:id (actualización parcial). */
+export function editarCancha(
+  id: string,
+  datos: Partial<DatosCancha>,
+): Promise<CanchaApi> {
+  return peticion<CanchaApi>(`/canchas/${id}`, {
+    metodo: "PUT",
+    cuerpo: datos,
+  });
+}
+
+/** PUT /canchas/:id cambiando solo el estado. */
+export function cambiarEstadoCancha(
+  id: string,
+  estado: EstadoCancha,
+): Promise<CanchaApi> {
+  return editarCancha(id, { estado });
 }
 
 /** GET /disciplinas */
@@ -358,6 +401,34 @@ export function obtenerEquipamiento(
   if (filtros.disponible === true) params.set("disponible", "true");
   if (filtros.incluirInactivos) params.set("incluirInactivos", "true");
   return obtenerTodasLasPaginas<EquipamientoApi>("/equipamiento", params);
+}
+
+export type DatosEquipamiento = {
+  nombre: string;
+  disciplinaId: string;
+  stockTotal: number;
+  precioUnitario: number;
+};
+
+/** POST /equipamiento */
+export function crearEquipamiento(
+  datos: DatosEquipamiento,
+): Promise<EquipamientoApi> {
+  return peticion<EquipamientoApi>("/equipamiento", {
+    metodo: "POST",
+    cuerpo: datos,
+  });
+}
+
+/** PUT /equipamiento/:id (actualización parcial). */
+export function editarEquipamiento(
+  id: string,
+  datos: Partial<DatosEquipamiento>,
+): Promise<EquipamientoApi> {
+  return peticion<EquipamientoApi>(`/equipamiento/${id}`, {
+    metodo: "PUT",
+    cuerpo: datos,
+  });
 }
 
 /** POST /reservas/:id/alquiler: alquila equipamiento sobre una reserva. */

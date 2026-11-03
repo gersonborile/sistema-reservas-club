@@ -1,7 +1,7 @@
-import type { Reserva } from "@/lib/mock-reservas";
+import type { ReservaUI } from "@/lib/adaptadores";
 
 type Props = {
-  reservas: Reserva[];
+  reservas: ReservaUI[];
 };
 
 export default function TarjetaReservasHoy({ reservas }: Props) {
