@@ -9,7 +9,7 @@ Desajustes entre el mock y el backend que se resuelven acá:
 
 ## What Changes
 
-- Funciones de API en el frontend: `obtenerCanchas`, `obtenerCancha`, `obtenerDisciplinas` y `obtenerTurnos` (por cancha y fecha), más adaptadores que traducen el contrato del backend a los tipos de la UI (`activa = estado !== EN_MANTENIMIENTO`, etiqueta de disciplina, franja = turno).
+- Funciones de API en el frontend: `obtenerCanchas`, `obtenerCancha`, `obtenerDisciplinas` y `obtenerTurnos` (por cancha y fecha), más adaptadores que traducen el contrato del backend a los tipos de la UI (`reservable = estado === DISPONIBLE`, etiqueta de disciplina, franja = turno).
 - La pantalla `/canchas` usa `GET /canchas?disciplina=` y `GET /turnos?cancha_id=&fecha=`; los accesos rápidos de la Home y el filtro salen de `GET /disciplinas`.
 - "Canchas disponibles ahora" (Home) se calcula con `GET /canchas` y `GET /disponibilidad?cancha_id=&fecha=<hoy>`: el primer turno libre que aún no terminó, máximo 3 canchas.
 - Estados de carga, error y vacío en las pantallas conectadas (el mock era síncrono y no los tenía).

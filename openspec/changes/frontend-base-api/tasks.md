@@ -16,4 +16,4 @@
 
 - [x] 3.1 Correr `typecheck`, `lint` y `build` del frontend y `npm run test` / `npm run test:e2e` del backend y verificar que terminan sin errores
 - [x] 3.2 Con backend y Postgres locales, recorrer a mano registro → login de socio → pantalla protegida → logout y login de administrador → panel admin, y verificar los escenarios de `specs/frontend-api-client/spec.md` (incluido `401` por token vencido y credenciales inválidas)
-- [ ] 3.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que registro y login funcionan contra el backend de producción
+- [x] 3.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que registro y login funcionan contra el backend de producción

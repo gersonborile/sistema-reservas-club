@@ -2,62 +2,117 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { Disciplina, Franja } from "@/lib/mock-reservas";
-import { obtenerCanchas, obtenerFranjas } from "@/lib/mock-reservas";
+import type { CanchaUI, FranjaUI } from "@/lib/adaptadores";
+import {
+  aCanchaUI,
+  aEtiquetaDisciplina,
+  aFranjaUI,
+  etiquetaDisciplinas,
+} from "@/lib/adaptadores";
+import {
+  mensajeDeError,
+  obtenerCanchas,
+  obtenerDisciplinas,
+  obtenerTurnos,
+} from "@/lib/api";
+import type { DisciplinaApi } from "@/lib/api";
+import { obtenerFechaLocalHoy } from "@/lib/fechas";
 
-function obtenerFechaLocalHoy(): string {
-  const hoy = new Date();
-  const anio = hoy.getFullYear();
-  const mes = String(hoy.getMonth() + 1).padStart(2, "0");
-  const dia = String(hoy.getDate()).padStart(2, "0");
-  return `${anio}-${mes}-${dia}`;
-}
-
-const disciplinas: Array<Disciplina | "Todas"> = ["Todas", "Tenis", "Fútbol 5", "Pádel"];
-const franjasHorario = [
-  "Cualquiera",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-];
+const CUALQUIER_HORARIO = "Cualquiera";
 
 export default function CanchasClient() {
   const searchParams = useSearchParams();
-  const disciplinaParam = searchParams.get("disciplina") as Disciplina | null;
+  const disciplinaParam = searchParams.get("disciplina") ?? "Todas";
+  // key: al cambiar la disciplina de la URL se reinician los filtros.
+  return <ListadoCanchas key={disciplinaParam} disciplinaInicial={disciplinaParam} />;
+}
 
-  const [disciplinaEnEdicion, setDisciplinaEnEdicion] = useState<Disciplina | "Todas">(
-    disciplinaParam ?? "Todas"
-  );
+type Resultado = {
+  clave: string;
+  disciplinas: DisciplinaApi[];
+  canchas: CanchaUI[];
+  franjasPorCancha: Record<string, FranjaUI[]>;
+  error: string | null;
+};
+
+function ListadoCanchas({ disciplinaInicial }: { disciplinaInicial: string }) {
+  const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [intento, setIntento] = useState(0);
+
+  const [disciplinaEnEdicion, setDisciplinaEnEdicion] = useState(disciplinaInicial);
   const [fechaEnEdicion, setFechaEnEdicion] = useState(obtenerFechaLocalHoy);
-  const [horarioEnEdicion, setHorarioEnEdicion] = useState("Cualquiera");
 
-  const [disciplinaAplicada, setDisciplinaAplicada] = useState<Disciplina | "Todas">(
-    disciplinaParam ?? "Todas"
-  );
+  const [disciplinaAplicada, setDisciplinaAplicada] = useState(disciplinaInicial);
   const [fechaAplicada, setFechaAplicada] = useState(obtenerFechaLocalHoy);
-  const [horarioAplicado, setHorarioAplicado] = useState("Cualquiera");
+  const [horario, setHorario] = useState(CUALQUIER_HORARIO);
 
-  const canchasAplicadas = useMemo(() => {
-    return obtenerCanchas({ disciplina: disciplinaAplicada });
-  }, [disciplinaAplicada]);
+  const clave = `${disciplinaAplicada}|${fechaAplicada}|${intento}`;
+  const cargando = resultado?.clave !== clave;
+  const error = resultado?.error ?? null;
+  const disciplinas = resultado?.disciplinas ?? [];
+  const canchas = resultado?.canchas ?? [];
+  const franjasPorCancha = resultado?.franjasPorCancha ?? {};
+  // Las opciones de horario salen de los turnos cargados; si el elegido ya no
+  // existe en la búsqueda actual, se vuelve a "Cualquiera".
+  const horarios = Array.from(
+    new Set(
+      Object.values(franjasPorCancha)
+        .flat()
+        .map((franja) => franja.hora),
+    ),
+  ).sort();
+  const horarioElegido = horarios.includes(horario) ? horario : CUALQUIER_HORARIO;
 
-  const franjasPorCancha = useMemo(() => {
-    const franjas: Record<string, Franja[]> = {};
-    for (const cancha of canchasAplicadas) {
-      franjas[cancha.id] = obtenerFranjas(cancha.id, fechaAplicada);
+  useEffect(() => {
+    let cancelado = false;
+    async function cargar() {
+      try {
+        const [listaDisciplinas, listaCanchas] = await Promise.all([
+          obtenerDisciplinas(),
+          obtenerCanchas(
+            disciplinaAplicada === "Todas" ? {} : { disciplina: disciplinaAplicada },
+          ),
+        ]);
+        const activas = listaCanchas.map(aCanchaUI).filter((cancha) => cancha.reservable);
+        const listasFranjas = await Promise.all(
+          activas.map((cancha) =>
+            obtenerTurnos({ canchaId: cancha.id, fecha: fechaAplicada }),
+          ),
+        );
+        const franjas: Record<string, FranjaUI[]> = {};
+        activas.forEach((cancha, indice) => {
+          franjas[cancha.id] = listasFranjas[indice].map(aFranjaUI);
+        });
+        if (cancelado) return;
+        setResultado({
+          clave,
+          disciplinas: listaDisciplinas,
+          canchas: activas,
+          franjasPorCancha: franjas,
+          error: null,
+        });
+      } catch (e) {
+        if (cancelado) return;
+        setResultado({
+          clave,
+          disciplinas: [],
+          canchas: [],
+          franjasPorCancha: {},
+          error: mensajeDeError(e),
+        });
+      }
     }
-    return franjas;
-  }, [canchasAplicadas, fechaAplicada]);
+    void cargar();
+    return () => {
+      cancelado = true;
+    };
+  }, [clave, disciplinaAplicada, fechaAplicada]);
 
   function aplicarFiltros() {
     setDisciplinaAplicada(disciplinaEnEdicion);
     setFechaAplicada(fechaEnEdicion);
-    setHorarioAplicado(horarioEnEdicion);
   }
 
   return (
@@ -76,14 +131,13 @@ export default function CanchasClient() {
           </label>
           <select
             value={disciplinaEnEdicion}
-            onChange={(e) =>
-              setDisciplinaEnEdicion(e.target.value as Disciplina | "Todas")
-            }
+            onChange={(e) => setDisciplinaEnEdicion(e.target.value)}
             className="w-full px-3 py-2 border border-neutral-300 rounded"
           >
+            <option value="Todas">Todas</option>
             {disciplinas.map((d) => (
-              <option key={d} value={d}>
-                {d}
+              <option key={d.id} value={d.nombre}>
+                {aEtiquetaDisciplina(d.nombre)}
               </option>
             ))}
           </select>
@@ -106,11 +160,11 @@ export default function CanchasClient() {
             Horario
           </label>
           <select
-            value={horarioEnEdicion}
-            onChange={(e) => setHorarioEnEdicion(e.target.value)}
+            value={horarioElegido}
+            onChange={(e) => setHorario(e.target.value)}
             className="w-full px-3 py-2 border border-neutral-300 rounded"
           >
-            {franjasHorario.map((h) => (
+            {[CUALQUIER_HORARIO, ...horarios].map((h) => (
               <option key={h} value={h}>
                 {h}
               </option>
@@ -127,57 +181,83 @@ export default function CanchasClient() {
         </button>
       </div>
 
-      <div className="space-y-4">
-        {canchasAplicadas.map((cancha) => {
-          const franjas = franjasPorCancha[cancha.id] || [];
-          return (
-            <div
-              key={cancha.id}
-              className="bg-white border border-neutral-200 rounded-lg p-4 flex gap-4"
-            >
-              <div className="w-24 h-24 bg-neutral-200 rounded flex-shrink-0" />
-              <div className="flex-1">
-                <h2 className="font-semibold text-neutral-900">
-                  {cancha.nombre}
-                </h2>
-                <p className="text-sm text-neutral-600 mb-3">
-                  {cancha.disciplina}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {franjas.map((franja) => {
-                    const mostrarFranja =
-                      horarioAplicado === "Cualquiera" || horarioAplicado === franja.hora;
-                    if (!mostrarFranja) return null;
+      {cargando ? (
+        <p className="text-sm text-neutral-500">Cargando canchas...</p>
+      ) : error ? (
+        <div className="bg-white border border-neutral-200 rounded-lg p-4">
+          <p className="text-sm text-red-600">{error}</p>
+          <button
+            type="button"
+            onClick={() => setIntento((n) => n + 1)}
+            className="mt-3 px-4 py-2 bg-neutral-900 text-white rounded hover:bg-neutral-800"
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : canchas.length === 0 ? (
+        <p className="text-sm text-neutral-500">
+          No hay canchas para esta búsqueda.
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {canchas.map((cancha) => {
+            const franjas = franjasPorCancha[cancha.id] ?? [];
+            return (
+              <div
+                key={cancha.id}
+                className="bg-white border border-neutral-200 rounded-lg p-4 flex gap-4"
+              >
+                <div className="w-24 h-24 bg-neutral-200 rounded flex-shrink-0" />
+                <div className="flex-1">
+                  <h2 className="font-semibold text-neutral-900">
+                    {cancha.nombre}
+                  </h2>
+                  <p className="text-sm text-neutral-600 mb-3">
+                    {etiquetaDisciplinas(cancha)}
+                  </p>
+                  {franjas.length === 0 ? (
+                    <p className="text-sm text-neutral-500">
+                      No hay turnos para esta fecha.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {franjas.map((franja) => {
+                        const mostrarFranja =
+                          horarioElegido === CUALQUIER_HORARIO ||
+                          horarioElegido === franja.hora;
+                        if (!mostrarFranja) return null;
 
-                    if (franja.ocupada) {
-                      return (
-                        <button
-                          key={franja.hora}
-                          type="button"
-                          disabled
-                          className="px-3 py-1 text-sm bg-neutral-100 text-neutral-400 rounded border border-neutral-300 line-through cursor-not-allowed"
-                        >
-                          {franja.hora}
-                        </button>
-                      );
-                    }
+                        if (franja.ocupada) {
+                          return (
+                            <button
+                              key={franja.id}
+                              type="button"
+                              disabled
+                              className="px-3 py-1 text-sm bg-neutral-100 text-neutral-400 rounded border border-neutral-300 line-through cursor-not-allowed"
+                            >
+                              {franja.hora}
+                            </button>
+                          );
+                        }
 
-                    return (
-                      <Link
-                        key={franja.hora}
-                        href={`/canchas/${cancha.id}/reservar?fecha=${fechaAplicada}&hora=${franja.hora}`}
-                        className="px-3 py-1 text-sm bg-white text-neutral-900 rounded border border-neutral-300 hover:bg-neutral-50"
-                      >
-                        {franja.hora}
-                      </Link>
-                    );
-                  })}
+                        return (
+                          <Link
+                            key={franja.id}
+                            href={`/canchas/${cancha.id}/reservar?fecha=${fechaAplicada}&hora=${franja.hora}&turnoId=${franja.id}`}
+                            className="px-3 py-1 text-sm bg-white text-neutral-900 rounded border border-neutral-300 hover:bg-neutral-50"
+                          >
+                            {franja.hora}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
