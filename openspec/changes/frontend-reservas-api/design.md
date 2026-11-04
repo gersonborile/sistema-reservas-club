@@ -21,7 +21,7 @@
 - **Adaptador de reserva**: `aReservaUI(reserva)` produce `{ id, canchaId, canchaNombre, fecha, hora (horaInicio), horaFin, estado, alquiler }` desde `turno.cancha` y `turno`. La disciplina de la reserva se toma de la cancha del turno si el backend la expone; si no, no se muestra (no se infiere).
 - **Estados**: `estado` se muestra como "Confirmada" / "Cancelada". Se elimina `pendiente`.
 - **Cancelación**: el botón se habilita con la misma regla de 2 horas como ayuda visual, pero el backend es la autoridad: ante `409` se muestra su mensaje y se recarga la lista.
-- **Equipamiento a elegir**: `GET /equipamiento?disciplina=<id de la disciplina del turno>&disponible=true`, recorriendo páginas; se muestra nombre, `stockDisponible` y `precioUnitario`. Cantidad entre 1 y `stockDisponible`.
+- **Equipamiento a elegir**: `GET /equipamiento?disciplinaId=<id de la disciplina del turno>&disponible=true`, recorriendo páginas; se muestra nombre, `stockDisponible` y `precioUnitario`. Cantidad entre 1 y `stockDisponible`.
 - **Total del alquiler**: `precioUnitario × cantidad` por ítem es solo vista previa; el valor definitivo es el `total` que devuelve el backend. Se muestra como "Total del alquiler" (no se inventa un precio de cancha).
 - **Quién ve "Alquilar"**: reserva `CONFIRMADA`, `alquiler === null`, y la reserva es del usuario autenticado (o el usuario es administrador). Un socio solo recibe sus propias reservas de `GET /reservas/mis`, así que la titularidad queda garantizada por el backend; la condición de la UI es defensa adicional.
 - **Próxima reserva (Home)**: de `GET /reservas/mis`, la `CONFIRMADA` con inicio mayor o igual a ahora y menor inicio. Se calcula con fecha y hora locales.

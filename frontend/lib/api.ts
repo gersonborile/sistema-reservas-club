@@ -40,6 +40,39 @@ export type TurnoApi = {
   disponible: boolean;
 };
 
+export type AlquilerApi = {
+  id: string;
+  total: number;
+  items: { equipamientoId: string; cantidad: number; precioUnitario: number }[];
+};
+
+export type ReservaApi = {
+  id: string;
+  usuarioId: string;
+  turnoId: string;
+  estado: "CONFIRMADA" | "CANCELADA";
+  createdAt: string;
+  alquiler: AlquilerApi | null;
+  turno: {
+    fecha: string;
+    horaInicio: string;
+    horaFin: string;
+    cancha: { id: string; nombre: string };
+  };
+};
+
+export type EquipamientoApi = {
+  id: string;
+  nombre: string;
+  disciplinaId: string;
+  disciplina: { id: string; nombre: string };
+  stockTotal: number;
+  stockDisponible: number;
+  precioUnitario: number;
+  activo: boolean;
+  disponible: boolean;
+};
+
 const URL_CONFIGURADA = process.env.NEXT_PUBLIC_API_URL?.trim();
 
 /**
@@ -288,4 +321,52 @@ export function obtenerDisponibilidad(
 ): Promise<TurnoApi[]> {
   const params = new URLSearchParams({ cancha_id: canchaId, fecha });
   return peticion<TurnoApi[]>(`/disponibilidad?${params.toString()}`);
+}
+
+/** POST /reservas: crea la reserva CONFIRMADA del turno dado. */
+export function crearReserva(turnoId: string): Promise<ReservaApi> {
+  return peticion<ReservaApi>("/reservas", {
+    metodo: "POST",
+    cuerpo: { turnoId },
+  });
+}
+
+/** GET /reservas/mis: reservas del usuario autenticado. */
+export function obtenerMisReservas(): Promise<ReservaApi[]> {
+  return peticion<ReservaApi[]>("/reservas/mis");
+}
+
+/** PATCH /reservas/:id/cancelar: cancela la reserva propia. */
+export function cancelarReserva(id: string): Promise<ReservaApi> {
+  return peticion<ReservaApi>(`/reservas/${id}/cancelar`, {
+    metodo: "PATCH",
+  });
+}
+
+export type FiltrosEquipamiento = {
+  disciplinaId?: string;
+  disponible?: boolean;
+  incluirInactivos?: boolean;
+};
+
+/** GET /equipamiento con filtros opcionales (recorre páginas). */
+export function obtenerEquipamiento(
+  filtros: FiltrosEquipamiento = {},
+): Promise<EquipamientoApi[]> {
+  const params = new URLSearchParams();
+  if (filtros.disciplinaId) params.set("disciplinaId", filtros.disciplinaId);
+  if (filtros.disponible === true) params.set("disponible", "true");
+  if (filtros.incluirInactivos) params.set("incluirInactivos", "true");
+  return obtenerTodasLasPaginas<EquipamientoApi>("/equipamiento", params);
+}
+
+/** POST /reservas/:id/alquiler: alquila equipamiento sobre una reserva. */
+export function crearAlquiler(
+  reservaId: string,
+  items: { equipamientoId: string; cantidad: number }[],
+): Promise<AlquilerApi> {
+  return peticion<AlquilerApi>(`/reservas/${reservaId}/alquiler`, {
+    metodo: "POST",
+    cuerpo: { items },
+  });
 }
