@@ -12,16 +12,17 @@ import {
   obtenerEquipamiento,
   obtenerMisReservas,
 } from "@/lib/api";
-import type { ReservaUI } from "@/lib/adaptadores";
+import type { FiltroReservaEstado, ReservaUI } from "@/lib/adaptadores";
 import {
   aMapaNombres,
   aReservasUI,
+  filtrarReservasPorEstado,
   nombreDeItemAlquiler,
   puedeCancelarReserva,
 } from "@/lib/adaptadores";
 import { formatearFechaAbreviada } from "@/lib/fechas";
 
-type Pestana = "Todas" | "Confirmadas" | "Canceladas";
+type Pestana = FiltroReservaEstado;
 
 const PESTANAS: Pestana[] = ["Todas", "Confirmadas", "Canceladas"];
 
@@ -112,11 +113,7 @@ export default function ReservasClient() {
     };
   }, [clave]);
 
-  const reservasVisibles = reservasBase.filter((reserva) => {
-    if (pestana === "Todas") return true;
-    if (pestana === "Confirmadas") return reserva.estado === "confirmada";
-    return reserva.estado === "cancelada";
-  });
+  const reservasVisibles = filtrarReservasPorEstado(reservasBase, pestana);
 
   const nombres = aMapaNombres(equipamiento);
   const equipamientoModal = modalAlquilar
