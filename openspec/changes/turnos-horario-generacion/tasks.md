@@ -4,7 +4,7 @@
 - [ ] 1.2 Agregar `hoyEnZonaClub()` y `aInstanteInicio()` en la zona del club, test-first, y verificar con unit tests el cruce de medianoche UTC y el instante de un turno de las 10:00
 - [ ] 1.3 Reemplazar `esFechaPasada` y `aInstanteInicioUtc` en `turnos.service.ts` y `reservas.service.ts`, y verificar con tests de servicio que un turno de hoy a la noche se puede crear y que «turno pasado» y la ventana de cancelación usan la hora de Argentina
 - [ ] 1.4 Validar la franja en `POST /turnos` y `PATCH /turnos/:id` (400) y verificar con tests de servicio y e2e cada escenario de «Franjas del horario del club»; actualizar los datos de los tests existentes a franjas válidas
-- [ ] 1.5 Anotar el horario, las franjas y la zona horaria como reglas en `openspec/config.yaml`
+- [x] 1.5 Anotar el horario, las franjas y la zona horaria como reglas en `openspec/config.yaml`
 
 ## 2. Generación en bloque (backend)
 
