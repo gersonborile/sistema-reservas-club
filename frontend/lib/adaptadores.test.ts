@@ -24,6 +24,7 @@ import {
   puedeCancelarReserva,
   textoItemsAlquiler,
   validarDatosTurno,
+  validarGeneracion,
   validarHorario,
   validarStock,
 } from "@/lib/adaptadores";
@@ -303,6 +304,51 @@ describe("validarDatosTurno", () => {
     expect(
       validarDatosTurno({ disciplinaId: "", fecha: "", horaInicio: "", horaFin: "" }),
     ).toBe("Elegí una disciplina.");
+  });
+});
+
+describe("validarGeneracion", () => {
+  const VALIDO = {
+    disciplinaId: "d-1",
+    fechaDesde: "2026-11-10",
+    fechaHasta: "2026-11-16",
+  };
+
+  it("acepta un rango con todos los campos validos", () => {
+    expect(validarGeneracion(VALIDO)).toBeNull();
+  });
+
+  it("rechaza una fecha hasta anterior a la desde", () => {
+    expect(
+      validarGeneracion({ ...VALIDO, fechaHasta: "2026-11-09" }),
+    ).toBe("La fecha hasta no puede ser anterior a la fecha desde.");
+  });
+
+  it("acepta un rango de exactamente 31 dias", () => {
+    expect(
+      validarGeneracion({ ...VALIDO, fechaHasta: "2026-12-10" }),
+    ).toBeNull();
+  });
+
+  it("rechaza un rango de mas de 31 dias", () => {
+    expect(
+      validarGeneracion({ ...VALIDO, fechaHasta: "2026-12-11" }),
+    ).toBe("El rango de fechas no puede superar los 31 días.");
+  });
+
+  it("pide elegir una disciplina", () => {
+    expect(validarGeneracion({ ...VALIDO, disciplinaId: "" })).toBe(
+      "Elegí una disciplina.",
+    );
+  });
+
+  it("pide las fechas cuando falta alguna", () => {
+    expect(validarGeneracion({ ...VALIDO, fechaDesde: "" })).toBe(
+      "Las fechas son obligatorias.",
+    );
+    expect(validarGeneracion({ ...VALIDO, fechaHasta: "" })).toBe(
+      "Las fechas son obligatorias.",
+    );
   });
 });
 

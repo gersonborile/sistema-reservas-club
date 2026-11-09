@@ -1,6 +1,8 @@
 import { Transform } from 'class-transformer';
 import { IsDateString, IsOptional, IsUUID, Matches } from 'class-validator';
 import { FORMATO_HORA, normalizarHora } from '../horarios.js';
+import { MENSAJE_FECHA_INVALIDA } from '../mensajes.js';
+import { EsFechaCalendario } from './fecha-calendario.decorator.js';
 
 const normalizarHoraDeEntrada = ({ value }: { value: unknown }): unknown =>
   normalizarHora(value);
@@ -20,6 +22,7 @@ export class ActualizarTurnoDto {
 
   @IsOptional()
   @IsDateString({}, { message: 'El campo fecha debe tener formato ISO 8601.' })
+  @EsFechaCalendario({ message: MENSAJE_FECHA_INVALIDA })
   fecha?: string;
 
   @IsOptional()

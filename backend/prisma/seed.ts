@@ -198,7 +198,7 @@ async function seedTurnos(canchaIds: Record<string, string>) {
     { cancha: "Cancha de Tenis 1", disciplinaId: tenis.id, horaInicio: "10:00", horaFin: "11:00" },
     { cancha: "Cancha de Tenis 2", disciplinaId: tenis.id, horaInicio: "08:00", horaFin: "09:00" },
     { cancha: "Cancha de Tenis 2", disciplinaId: tenis.id, horaInicio: "10:00", horaFin: "11:00" },
-    { cancha: "Cancha de Futbol 1", disciplinaId: futbol.id, horaInicio: "09:00", horaFin: "10:30" },
+    { cancha: "Cancha de Futbol 1", disciplinaId: futbol.id, horaInicio: "09:00", horaFin: "10:00" },
     { cancha: "Cancha de Padel 1", disciplinaId: padel.id, horaInicio: "18:00", horaFin: "19:00" },
     { cancha: "Cancha de Padel 1", disciplinaId: padel.id, horaInicio: "19:00", horaFin: "20:00" },
   ];

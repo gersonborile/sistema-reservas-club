@@ -165,7 +165,41 @@ describe('ReservasService', () => {
       prisma.turno.findUnique.mockResolvedValue(
         filaTurno({
           fecha: new Date(Date.UTC(2026, 9, 23)),
-          horaInicio: '17:59',
+          horaInicio: '14:00',
+          cancha: { estado: EstadoCancha.DISPONIBLE },
+        }),
+      );
+
+      await expect(service.crear(usuario, dto)).rejects.toThrow(
+        MENSAJE_TURNO_PASADO,
+      );
+      vi.useRealTimers();
+    });
+
+    it('no rechaza a las 08:30 un turno de hoy que empieza a las 10:00', async () => {
+      vi.setSystemTime(new Date('2026-11-10T11:30:00Z'));
+      prisma.turno.findUnique.mockResolvedValue(
+        filaTurno({
+          fecha: new Date(Date.UTC(2026, 10, 10)),
+          horaInicio: '10:00',
+          horaFin: '11:00',
+          cancha: { estado: EstadoCancha.DISPONIBLE },
+        }),
+      );
+
+      await expect(service.crear(usuario, dto)).resolves.toMatchObject({
+        turnoId: TURNO,
+      });
+      vi.useRealTimers();
+    });
+
+    it('400 a las 10:15 un turno de hoy que empieza a las 10:00', async () => {
+      vi.setSystemTime(new Date('2026-11-10T13:15:00Z'));
+      prisma.turno.findUnique.mockResolvedValue(
+        filaTurno({
+          fecha: new Date(Date.UTC(2026, 10, 10)),
+          horaInicio: '10:00',
+          horaFin: '11:00',
           cancha: { estado: EstadoCancha.DISPONIBLE },
         }),
       );
@@ -289,7 +323,7 @@ describe('ReservasService', () => {
         usuarioId: SOCIO,
         turnoId: TURNO,
         estado: EstadoReserva.CONFIRMADA,
-        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '14:00' },
+        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '11:00' },
       });
       prisma.reserva.findUnique.mockResolvedValueOnce({
         id: RESERVA,
@@ -299,8 +333,8 @@ describe('ReservasService', () => {
         createdAt: new Date(),
         turno: {
           fecha: new Date(Date.UTC(2026, 9, 23)),
-          horaInicio: '14:00',
-          horaFin: '15:00',
+          horaInicio: '11:00',
+          horaFin: '12:00',
           cancha: { id: CANCHA, nombre: 'Cancha' },
         },
       });
@@ -315,7 +349,7 @@ describe('ReservasService', () => {
         usuarioId: SOCIO,
         turnoId: TURNO,
         estado: EstadoReserva.CONFIRMADA,
-        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '13:59' },
+        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '10:00' },
       });
 
       await expect(service.cancelar(usuario, RESERVA)).rejects.toThrow(
@@ -325,6 +359,25 @@ describe('ReservasService', () => {
         ConflictException,
       );
       expect(prisma.reserva.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('409 a las 08:30 para cancelar un turno de las 10:00', async () => {
+      vi.setSystemTime(new Date('2026-11-10T11:30:00Z'));
+      prisma.reserva.findUnique.mockResolvedValue({
+        id: RESERVA,
+        usuarioId: SOCIO,
+        turnoId: TURNO,
+        estado: EstadoReserva.CONFIRMADA,
+        turno: {
+          fecha: new Date(Date.UTC(2026, 10, 10)),
+          horaInicio: '10:00',
+        },
+      });
+
+      await expect(service.cancelar(usuario, RESERVA)).rejects.toThrow(
+        MENSAJE_RESERVA_FUERA_DE_VENTANA,
+      );
+      vi.useRealTimers();
     });
 
     it('409 cuando el turno ya comenzó', async () => {
@@ -384,7 +437,7 @@ describe('ReservasService', () => {
         usuarioId: SOCIO,
         turnoId: TURNO,
         estado: EstadoReserva.CONFIRMADA,
-        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '13:59' },
+        turno: { fecha: new Date(Date.UTC(2026, 9, 23)), horaInicio: '10:00' },
       });
 
       await expect(service.cancelar(usuario, RESERVA)).rejects.toThrow(
