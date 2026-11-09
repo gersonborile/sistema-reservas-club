@@ -14,4 +14,4 @@
 
 - [x] 3.1 Correr `typecheck`, `lint` y `build` del frontend y verificar que terminan sin errores
 - [x] 3.2 Con backend y Postgres locales (con turnos del seed), recorrer a mano Home → Canchas → filtro → franjas y verificar los escenarios de `specs/frontend-canchas-api/spec.md`
-- [ ] 3.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que el listado de canchas carga datos reales
+- [x] 3.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que el listado de canchas carga datos reales

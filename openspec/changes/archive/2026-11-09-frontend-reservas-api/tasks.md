@@ -15,4 +15,4 @@
 - [x] 3.1 Correr `typecheck`, `lint` y `build` del frontend y verificar que terminan sin errores
 - [x] 3.2 Con backend y Postgres locales, recorrer a mano reservar con y sin equipamiento, ver "Mis reservas", cancelar dentro y fuera de la ventana de 2 horas, y verificar que el stock vuelve al cancelar; verificar los escenarios de `specs/frontend-reservas-api/spec.md`
 - [x] 3.3 Tildar 4.1, 4.2 y 4.3 de `openspec/changes/spec-alquiler/tasks.md`
-- [ ] 3.4 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que se puede reservar y cancelar
+- [x] 3.4 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que se puede reservar y cancelar

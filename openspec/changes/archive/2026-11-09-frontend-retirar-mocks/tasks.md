@@ -13,4 +13,4 @@
 - [x] 3.1 Actualizar `frontend/README.md` (requiere backend y `NEXT_PUBLIC_API_URL`, sin datos simulados)
 - [x] 3.2 Correr `typecheck`, `lint` y `build` del frontend y verificar que terminan sin errores
 - [x] 3.3 Con backend y Postgres locales, recorrer a mano socio (Home, Canchas, reservar, Mis reservas, cancelar) y administrador (Resumen, Canchas, Equipamiento, Turnos, Reservas) y verificar que ninguna pantalla usa datos simulados
-- [ ] 3.4 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` el recorrido completo de socio y de administrador
+- [x] 3.4 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` el recorrido completo de socio y de administrador
