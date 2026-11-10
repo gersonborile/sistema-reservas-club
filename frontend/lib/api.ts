@@ -404,6 +404,28 @@ export function eliminarTurno(id: string): Promise<void> {
   });
 }
 
+export type DatosGeneracion = {
+  cancha_id: string;
+  disciplina_id: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+};
+
+export type ResultadoGeneracion = {
+  creados: number;
+  salteados: number;
+};
+
+/** POST /turnos/generar: genera las franjas del rango (solo administrador). */
+export function generarTurnos(
+  datos: DatosGeneracion,
+): Promise<ResultadoGeneracion> {
+  return peticion<ResultadoGeneracion>("/turnos/generar", {
+    metodo: "POST",
+    cuerpo: datos,
+  });
+}
+
 /** GET /disponibilidad: turnos libres de una cancha en una fecha. */
 export function obtenerDisponibilidad(
   canchaId: string,

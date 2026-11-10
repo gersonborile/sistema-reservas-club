@@ -12,6 +12,14 @@ import type {
 const ERROR_STOCK = "El stock debe ser un entero mayor o igual a 0.";
 const ERROR_HORA_OBLIGATORIA = "La hora es obligatoria.";
 const ERROR_HORA_FORMATO = "Usá el formato HH:mm.";
+const ERROR_GENERACION_SIN_DISCIPLINA = "Elegí una disciplina.";
+const ERROR_GENERACION_SIN_FECHAS = "Las fechas son obligatorias.";
+const ERROR_GENERACION_RANGO_INVERTIDO =
+  "La fecha hasta no puede ser anterior a la fecha desde.";
+const ERROR_GENERACION_RANGO_EXCEDIDO =
+  "El rango de fechas no puede superar los 31 días.";
+const DIAS_MAXIMOS_GENERACION = 31;
+const MILISEGUNDOS_POR_DIA = 24 * 60 * 60 * 1000;
 const FORMATO_HORA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /**
@@ -40,6 +48,39 @@ export function validarDatosTurno(datos: DatosTurnoFormulario): string | null {
   if (!datos.disciplinaId) return "Elegí una disciplina.";
   if (!datos.fecha) return "La fecha es obligatoria.";
   return validarHorario(datos.horaInicio) ?? validarHorario(datos.horaFin);
+}
+
+export type DatosGeneracionFormulario = {
+  disciplinaId: string;
+  fechaDesde: string;
+  fechaHasta: string;
+};
+
+function aDiaUtc(fecha: string): number {
+  return Date.parse(`${fecha}T00:00:00.000Z`);
+}
+
+/**
+ * Valida el formulario de generación de turnos: disciplina, fechas
+ * obligatorias, fecha hasta no anterior a desde y rango de hasta 31 días.
+ */
+export function validarGeneracion(
+  datos: DatosGeneracionFormulario,
+): string | null {
+  if (!datos.disciplinaId) return ERROR_GENERACION_SIN_DISCIPLINA;
+  if (!datos.fechaDesde || !datos.fechaHasta) {
+    return ERROR_GENERACION_SIN_FECHAS;
+  }
+
+  const desde = aDiaUtc(datos.fechaDesde);
+  const hasta = aDiaUtc(datos.fechaHasta);
+  if (hasta < desde) return ERROR_GENERACION_RANGO_INVERTIDO;
+
+  const dias = (hasta - desde) / MILISEGUNDOS_POR_DIA + 1;
+  if (dias > DIAS_MAXIMOS_GENERACION) {
+    return ERROR_GENERACION_RANGO_EXCEDIDO;
+  }
+  return null;
 }
 
 /**

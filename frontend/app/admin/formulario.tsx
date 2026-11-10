@@ -68,3 +68,52 @@ export function ErrorDeCampo({
   const mensaje = mensajeDeCampo(campos, campo);
   return mensaje ? <p className="mt-1 text-xs text-red-600">{mensaje}</p> : null;
 }
+
+export const CLASES_CONTROL =
+  "h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100";
+
+/** Campo de formulario con su etiqueta asociada al control por `id`. */
+export function Campo({
+  id,
+  etiqueta,
+  children,
+}: {
+  id: string;
+  etiqueta: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-1 flex-col gap-1">
+      <label
+        htmlFor={id}
+        className="text-[10px] uppercase tracking-wide text-neutral-500"
+      >
+        {etiqueta}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+/** Campo de texto que solo muestra un valor, sin poder editarlo. */
+export function CampoSoloLectura({
+  id,
+  etiqueta,
+  valor,
+}: {
+  id: string;
+  etiqueta: string;
+  valor: string;
+}) {
+  return (
+    <Campo id={id} etiqueta={etiqueta}>
+      <input
+        id={id}
+        type="text"
+        value={valor}
+        readOnly
+        className="h-9 rounded border border-neutral-300 bg-neutral-100 px-2 text-sm text-neutral-600"
+      />
+    </Campo>
+  );
+}

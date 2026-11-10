@@ -8,7 +8,7 @@ import {
 import { EstadoCancha, EstadoReserva, RolUsuario } from '../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { TokenSesion } from '../auth/token-sesion.js';
-import { aInstanteInicioUtc } from '../turnos/horarios.js';
+import { aInstanteInicio } from '../turnos/horario-club.js';
 import { esUuid } from '../turnos/uuid.js';
 import { CrearReservaDto } from './dto/crear-reserva.dto.js';
 import { ListarReservasQueryDto } from './dto/listar-reservas.query.js';
@@ -65,7 +65,7 @@ export class ReservasService {
       }
 
       const ahora = new Date();
-      const inicio = aInstanteInicioUtc(turno.fecha, turno.horaInicio);
+      const inicio = aInstanteInicio(turno.fecha, turno.horaInicio);
       if (inicio.getTime() <= ahora.getTime()) {
         throw new BadRequestException(MENSAJE_TURNO_PASADO);
       }
@@ -141,7 +141,7 @@ export class ReservasService {
       throw new ForbiddenException(MENSAJE_RESERVA_AJENA);
     }
 
-    const inicio = aInstanteInicioUtc(reserva.turno.fecha, reserva.turno.horaInicio);
+    const inicio = aInstanteInicio(reserva.turno.fecha, reserva.turno.horaInicio);
     if (inicio.getTime() - Date.now() < VENTANA_CANCELACION_MS) {
       throw new ConflictException(MENSAJE_RESERVA_FUERA_DE_VENTANA);
     }

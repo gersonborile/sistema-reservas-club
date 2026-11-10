@@ -58,18 +58,34 @@ function fechaUtc(iso: string): Date {
   return new Date(`${iso}T00:00:00.000Z`);
 }
 
-/** Fecha y hora de un turno que comienza dentro de menos de 2 horas (UTC). */
+/** Fecha y hora de un turno que comienza dentro de menos de 2 horas (zona del club). */
 function enUnaHora(): { fecha: string; horaInicio: string; horaFin: string } {
   const inicio = new Date(Date.now() + 60 * 60 * 1000);
   const fin = new Date(inicio.getTime() + 60 * 60 * 1000);
-  const hora = (instante: { getUTCHours(): number; getUTCMinutes(): number }) =>
-    `${String(instante.getUTCHours()).padStart(2, '0')}:${String(
-      instante.getUTCMinutes(),
-    ).padStart(2, '0')}`;
+  const enZonaClub = (instante: Date): Record<string, string> => {
+    const partes = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      hourCycle: 'h23',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).formatToParts(instante);
+    const valores: Record<string, string> = {};
+    for (const parte of partes) {
+      if (parte.type !== 'literal') {
+        valores[parte.type] = parte.value;
+      }
+    }
+    return valores;
+  };
+  const desde = enZonaClub(inicio);
+  const hasta = enZonaClub(fin);
   return {
-    fecha: inicio.toISOString().slice(0, 10),
-    horaInicio: hora(inicio),
-    horaFin: hora(fin),
+    fecha: `${desde.year}-${desde.month}-${desde.day}`,
+    horaInicio: `${desde.hour}:${desde.minute}`,
+    horaFin: `${hasta.hour}:${hasta.minute}`,
   };
 }
 
