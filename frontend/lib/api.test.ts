@@ -15,6 +15,7 @@ import {
   editarEquipamiento,
   editarTurno,
   eliminarTurno,
+  generarTurnos,
   obtenerEquipamiento,
   obtenerMisReservas,
   obtenerPago,
@@ -514,6 +515,34 @@ describe("eliminarTurno", () => {
 
     await expect(eliminarTurno("t-1")).rejects.toThrow(
       "El turno tiene una reserva activa y no puede eliminarse.",
+    );
+  });
+});
+
+describe("generarTurnos", () => {
+  it("envia POST /turnos/generar con el rango y devuelve creados y salteados", async () => {
+    const fetchMock = stubFetch([
+      { status: 201, cuerpo: { creados: 98, salteados: 0 } },
+    ]);
+
+    const resultado = await generarTurnos({
+      cancha_id: "c-1",
+      disciplina_id: "d-1",
+      fecha_desde: "2026-11-10",
+      fecha_hasta: "2026-11-16",
+    });
+
+    expect(resultado).toEqual({ creados: 98, salteados: 0 });
+    const { url, opciones } = peticionDe(fetchMock, 0);
+    expect(url).toBe(`${BASE_URL}/turnos/generar`);
+    expect(opciones.method).toBe("POST");
+    expect(opciones.body).toBe(
+      JSON.stringify({
+        cancha_id: "c-1",
+        disciplina_id: "d-1",
+        fecha_desde: "2026-11-10",
+        fecha_hasta: "2026-11-16",
+      }),
     );
   });
 });

@@ -53,17 +53,6 @@ export function aFechaIso(fecha: Date): string {
   return fecha.toISOString().slice(0, 10);
 }
 
-/** Indica si la fecha es anterior al día de hoy en UTC. */
-export function esFechaPasada(fecha: Date): boolean {
-  const ahora = new Date();
-  const hoyUtc = Date.UTC(
-    ahora.getUTCFullYear(),
-    ahora.getUTCMonth(),
-    ahora.getUTCDate(),
-  );
-  return fecha.getTime() < hoyUtc;
-}
-
 /** Convierte una hora `HH:mm` a minutos desde medianoche. */
 export function minutosDeHora(hora: string): number {
   const coincidencia = FORMATO_HORA_ENTRADA.exec(hora.trim());
@@ -76,19 +65,4 @@ export function minutosDeHora(hora: string): number {
     throw new RangeError(`Hora inválida: ${hora}`);
   }
   return horas * 60 + minutos;
-}
-
-/**
- * Instante de inicio de un turno: `fecha` + `horaInicio` interpretados en UTC.
- * Es el instante que usan "turno pasado" y la ventana de cancelación.
- * Valida la hora como `HH:mm` y la fecha con `aFechaUtc`.
- */
-export function aInstanteInicioUtc(fecha: Date, horaInicio: string): Date {
-  const minutos = minutosDeHora(horaInicio);
-  const dia = fecha.getUTCFullYear();
-  const mes = fecha.getUTCMonth();
-  const diaMes = fecha.getUTCDate();
-  return new Date(
-    Date.UTC(dia, mes, diaMes, Math.floor(minutos / 60), minutos % 60),
-  );
 }

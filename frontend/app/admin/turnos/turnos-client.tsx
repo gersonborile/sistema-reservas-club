@@ -22,6 +22,7 @@ import {
   formatearFechaAbreviada,
   obtenerFechaLocalHoy,
 } from "@/lib/fechas";
+import { horarioParaEditar } from "@/lib/franjas";
 
 import {
   ErrorConReintento,
@@ -30,6 +31,7 @@ import {
   estilosBotonSecundario,
 } from "../formulario";
 import DialogoEliminar from "./dialogo-eliminar";
+import DialogoGenerar from "./dialogo-generar";
 import type { CambiosFormularioTurno, FormularioTurno } from "./dialogo-turno";
 import DialogoTurno from "./dialogo-turno";
 
@@ -80,6 +82,7 @@ export default function TurnosClient() {
   const [enviando, setEnviando] = useState(false);
   const [turnoAEliminar, setTurnoAEliminar] = useState<TurnoUI | null>(null);
   const [eliminando, setEliminando] = useState(false);
+  const [dialogoGenerarAbierto, setDialogoGenerarAbierto] = useState(false);
 
   const cargandoCanchas = canchasResultado?.clave !== intentoCanchas;
   const errorCanchas = canchasResultado?.error ?? null;
@@ -194,8 +197,7 @@ export default function TurnosClient() {
       id: turno.id,
       disciplinaId: turno.disciplinaId,
       fecha,
-      horaInicio: turno.horaInicio,
-      horaFin: turno.horaFin,
+      ...horarioParaEditar(turno.horaInicio),
       error: null,
     });
   }
@@ -323,6 +325,18 @@ export default function TurnosClient() {
         <div className="flex-1" />
         <button
           type="button"
+          onClick={() => {
+            if (!canchaActual) return;
+            setAviso(null);
+            setDialogoGenerarAbierto(true);
+          }}
+          disabled={!canchaActual || ocupado}
+          className={estilosBotonSecundario(!canchaActual || ocupado)}
+        >
+          Generar turnos
+        </button>
+        <button
+          type="button"
           onClick={abrirNuevo}
           disabled={!puedeCrear}
           className={estilosBotonPrincipal(!puedeCrear)}
@@ -444,6 +458,14 @@ export default function TurnosClient() {
           onCambiar={cambiarFormulario}
           onCancelar={() => setFormulario(null)}
           onGuardar={() => void guardarTurno()}
+        />
+      ) : null}
+
+      {dialogoGenerarAbierto && canchaActual ? (
+        <DialogoGenerar
+          cancha={canchaActual}
+          onCancelar={() => setDialogoGenerarAbierto(false)}
+          onGenerado={() => setIntento((n) => n + 1)}
         />
       ) : null}
 

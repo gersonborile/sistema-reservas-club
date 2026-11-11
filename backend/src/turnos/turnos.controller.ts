@@ -15,9 +15,10 @@ import { Roles } from '../auth/decorators/roles.decorator.js';
 import { RolUsuario } from '../generated/prisma/client.js';
 import { ActualizarTurnoDto } from './dto/actualizar-turno.dto.js';
 import { CrearTurnoDto } from './dto/crear-turno.dto.js';
+import { GenerarTurnosDto } from './dto/generar-turnos.dto.js';
 import { ListarTurnosQueryDto } from './dto/listar-turnos.query.js';
 import { TurnoPublico } from './turno-publico.js';
-import { TurnosService } from './turnos.service.js';
+import { ResultadoGeneracion, TurnosService } from './turnos.service.js';
 
 @Controller('turnos')
 export class TurnosController {
@@ -33,6 +34,12 @@ export class TurnosController {
   @Get(':id')
   porId(@Param('id') id: string): Promise<TurnoPublico> {
     return this.turnosService.porId(id);
+  }
+
+  @Roles(RolUsuario.ADMINISTRADOR)
+  @Post('generar')
+  generar(@Body() dto: GenerarTurnosDto): Promise<ResultadoGeneracion> {
+    return this.turnosService.generar(dto);
   }
 
   @Roles(RolUsuario.ADMINISTRADOR)

@@ -2,8 +2,15 @@
 
 import type { CanchaUI } from "@/lib/adaptadores";
 import { aEtiquetaDisciplina } from "@/lib/adaptadores";
+import { franjasDelClub } from "@/lib/franjas";
 
-import { estilosBotonPrincipal, estilosBotonSecundario } from "../formulario";
+import {
+  Campo,
+  CampoSoloLectura,
+  CLASES_CONTROL,
+  estilosBotonPrincipal,
+  estilosBotonSecundario,
+} from "../formulario";
 
 export type FormularioTurno = {
   id: string | null;
@@ -17,31 +24,6 @@ export type FormularioTurno = {
 export type CambiosFormularioTurno = Partial<
   Pick<FormularioTurno, "disciplinaId" | "fecha" | "horaInicio" | "horaFin">
 >;
-
-const CLASES_CONTROL =
-  "h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100";
-
-function Campo({
-  id,
-  etiqueta,
-  children,
-}: {
-  id: string;
-  etiqueta: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-1 flex-col gap-1">
-      <label
-        htmlFor={id}
-        className="text-[10px] uppercase tracking-wide text-neutral-500"
-      >
-        {etiqueta}
-      </label>
-      {children}
-    </div>
-  );
-}
 
 /** Formulario modal para crear o editar un turno de la cancha elegida. */
 export default function DialogoTurno({
@@ -62,6 +44,7 @@ export default function DialogoTurno({
   onGuardar: () => void;
 }) {
   const titulo = formulario.id ? "Editar turno" : "Nuevo turno";
+  const franjas = franjasDelClub();
 
   return (
     <div
@@ -75,17 +58,11 @@ export default function DialogoTurno({
       >
         <h2 className="mb-4 text-base font-bold text-neutral-900">{titulo}</h2>
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase tracking-wide text-neutral-500">
-              Cancha
-            </span>
-            <input
-              type="text"
-              value={canchaEtiqueta}
-              readOnly
-              className="h-9 rounded border border-neutral-300 bg-neutral-100 px-2 text-sm text-neutral-600"
-            />
-          </div>
+          <CampoSoloLectura
+            id="cancha-turno"
+            etiqueta="Cancha"
+            valor={canchaEtiqueta}
+          />
           <Campo id="disciplina" etiqueta="Disciplina">
             <select
               id="disciplina"
@@ -117,25 +94,32 @@ export default function DialogoTurno({
           </Campo>
           <div className="flex gap-3">
             <Campo id="hora-inicio" etiqueta="Hora de inicio">
-              <input
+              <select
                 id="hora-inicio"
-                type="time"
                 value={formulario.horaInicio}
-                onChange={(e) => onCambiar({ horaInicio: e.target.value })}
+                onChange={(e) => {
+                  const inicio = e.target.value;
+                  const fin =
+                    franjas.find((franja) => franja.inicio === inicio)?.fin ??
+                    "";
+                  onCambiar({ horaInicio: inicio, horaFin: fin });
+                }}
                 disabled={enviando}
                 className={CLASES_CONTROL}
-              />
+              >
+                <option value="">Elegí una hora</option>
+                {franjas.map((franja) => (
+                  <option key={franja.inicio} value={franja.inicio}>
+                    {franja.inicio}
+                  </option>
+                ))}
+              </select>
             </Campo>
-            <Campo id="hora-fin" etiqueta="Hora de fin">
-              <input
-                id="hora-fin"
-                type="time"
-                value={formulario.horaFin}
-                onChange={(e) => onCambiar({ horaFin: e.target.value })}
-                disabled={enviando}
-                className={CLASES_CONTROL}
-              />
-            </Campo>
+            <CampoSoloLectura
+              id="hora-fin"
+              etiqueta="Hora de fin"
+              valor={formulario.horaFin}
+            />
           </div>
           {formulario.error ? (
             <div

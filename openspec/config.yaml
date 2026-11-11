@@ -37,6 +37,10 @@ context: |
   - No se puede reservar una cancha en estado "ocupada" o "en mantenimiento".
   - Un usuario no puede tener más de una reserva activa simultánea en la misma franja horaria,
     incluso en canchas distintas (regla configurable según decisión del club).
+  - Horario del club: todos los días de 08:00 a 22:00. Los turnos son franjas fijas de
+    60 minutos para todas las disciplinas, consecutivas y sin margen (08:00–09:00 … 21:00–22:00).
+  - Las fechas y horas de los turnos se interpretan en la zona horaria del club
+    (America/Argentina/Buenos_Aires), también para "turno pasado" y la ventana de cancelación.
 
   Tech stack:
   - Frontend: Next.js (React + TypeScript)

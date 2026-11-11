@@ -45,7 +45,7 @@ describe('Turnos (e2e)', () => {
   let app: INestApplication<App>;
   let jwtService: JwtService;
   let turnos: Map<string, FilaTurno>;
-  let canchas: Map<string, { id: string }>;
+  let canchas: Map<string, { id: string; disciplinas: string[] }>;
   let disciplinas: Map<string, { id: string }>;
   let prismaMock: Record<string, unknown>;
 
@@ -104,8 +104,8 @@ describe('Turnos (e2e)', () => {
   beforeEach(async () => {
     turnos = new Map();
     canchas = new Map([
-      [CANCHA_TENIS, { id: CANCHA_TENIS }],
-      [CANCHA_PADEL, { id: CANCHA_PADEL }],
+      [CANCHA_TENIS, { id: CANCHA_TENIS, disciplinas: [DISCIPLINA_TENIS] }],
+      [CANCHA_PADEL, { id: CANCHA_PADEL, disciplinas: [DISCIPLINA_PADEL] }],
     ]);
     disciplinas = new Map([
       [DISCIPLINA_TENIS, { id: DISCIPLINA_TENIS }],
@@ -140,12 +140,31 @@ describe('Turnos (e2e)', () => {
       disponible: false,
     });
 
-    prismaMock = {
+    const prismaMockBase: Record<string, unknown> = {
       $connect: vi.fn(),
       $disconnect: vi.fn(),
       cancha: {
-        findUnique: vi.fn(({ where }: { where: { id: string } }) =>
-          Promise.resolve(canchas.get(where.id) ?? null),
+        findUnique: vi.fn(
+          ({
+            where,
+            select,
+          }: {
+            where: { id: string };
+            select?: { disciplinas?: { where?: { id?: string } } };
+          }) => {
+            const cancha = canchas.get(where.id);
+            if (!cancha) {
+              return Promise.resolve(null);
+            }
+            const filtro = select?.disciplinas?.where?.id;
+            const disciplinasDeCancha = filtro
+              ? cancha.disciplinas.filter((id) => id === filtro)
+              : cancha.disciplinas;
+            return Promise.resolve({
+              id: cancha.id,
+              disciplinas: disciplinasDeCancha.map((id) => ({ id })),
+            });
+          },
         ),
       },
       disciplina: {
@@ -207,8 +226,30 @@ describe('Turnos (e2e)', () => {
           turnos.delete(where.id);
           return Promise.resolve(eliminado);
         }),
+        createMany: vi.fn(
+          ({
+            data,
+          }: {
+            data: Array<Omit<FilaTurno, 'id' | 'disponible'>>;
+          }) => {
+            for (const fila of data) {
+              const creado: FilaTurno = {
+                id: randomUUID(),
+                disponible: true,
+                ...fila,
+              };
+              turnos.set(creado.id, creado);
+            }
+            return Promise.resolve({ count: data.length });
+          },
+        ),
       },
     };
+    prismaMockBase.transaccion = vi.fn(
+      async (correr: (tx: Record<string, unknown>) => Promise<unknown>) =>
+        correr(prismaMockBase),
+    );
+    prismaMock = prismaMockBase;
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -505,6 +546,21 @@ describe('Turnos (e2e)', () => {
       expect(turnos.size).toBe(3);
     });
 
+    it('400: fecha de calendario inexistente', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), fecha: '2026-11-31' })
+        .expect(400);
+
+      expect(respuesta.body.message).toEqual([
+        'La fecha indicada no es una fecha de calendario válida.',
+      ]);
+      expect(turnos.size).toBe(3);
+    });
+
     it('409: turno superpuesto en la misma cancha y fecha', async () => {
       const token = await tokenAdmin();
 
@@ -514,8 +570,8 @@ describe('Turnos (e2e)', () => {
         .send({
           ...cuerpoValido(),
           fecha: enDias(3),
-          hora_inicio: '08:30',
-          hora_fin: '09:30',
+          hora_inicio: '09:00',
+          hora_fin: '10:00',
         })
         .expect(409);
 
@@ -569,6 +625,33 @@ describe('Turnos (e2e)', () => {
         .post('/turnos')
         .set('Authorization', `Bearer ${token}`)
         .send({ ...cuerpoValido(), hora_inicio: '25:00' })
+        .expect(400);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: turno fuera de las franjas del horario', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), hora_inicio: '07:00', hora_fin: '08:00' })
+        .expect(400);
+
+      expect(respuesta.body.message).toBe(
+        'El turno debe coincidir con una franja del horario del club: de 08:00 a 22:00, en bloques de 60 minutos.',
+      );
+      expect(turnos.size).toBe(3);
+    });
+
+    it('400: turno con una duración distinta de 60 minutos', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .post('/turnos')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoValido(), hora_inicio: '09:00', hora_fin: '10:30' })
         .expect(400);
 
       expect(turnos.size).toBe(3);
@@ -631,10 +714,35 @@ describe('Turnos (e2e)', () => {
       await request(server())
         .patch(`/turnos/${TURNO_TENIS_2}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ hora_inicio: '08:30', hora_fin: '09:30' })
+        .send({ hora_inicio: '08:00', hora_fin: '09:00' })
         .expect(409);
 
       expect(turnos.get(TURNO_TENIS_2)?.horaInicio).toBe('09:00');
+    });
+
+    it('400: modificación fuera de las franjas del horario', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_2}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '08:15', hora_fin: '09:15' })
+        .expect(400);
+
+      expect(turnos.get(TURNO_TENIS_2)?.horaInicio).toBe('09:00');
+    });
+
+    it('400: modificar solo la hora de inicio a una hora fuera de las franjas', async () => {
+      const token = await tokenAdmin();
+
+      await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ hora_inicio: '08:15' })
+        .expect(400);
+
+      expect(turnos.get(TURNO_TENIS_1)?.horaInicio).toBe('08:00');
+      expect(turnos.get(TURNO_TENIS_1)?.horaFin).toBe('09:00');
     });
 
     it('400: hora_fin inválida', async () => {
@@ -657,6 +765,21 @@ describe('Turnos (e2e)', () => {
         .expect(400);
     });
 
+    it('400: fecha de calendario inexistente', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .patch(`/turnos/${TURNO_TENIS_1}`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ fecha: '2026-11-31' })
+        .expect(400);
+
+      expect(respuesta.body.message).toEqual([
+        'La fecha indicada no es una fecha de calendario válida.',
+      ]);
+      expect(turnos.get(TURNO_TENIS_1)?.fecha).toEqual(fechaUtc(enDias(3)));
+    });
+
     it('422: disciplina inexistente', async () => {
       const token = await tokenAdmin();
 
@@ -665,6 +788,66 @@ describe('Turnos (e2e)', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({ disciplina_id: randomUUID() })
         .expect(422);
+    });
+  });
+
+  describe('POST /turnos/generar', () => {
+    function cuerpoGeneracion() {
+      return {
+        cancha_id: CANCHA_TENIS,
+        disciplina_id: DISCIPLINA_TENIS,
+        fecha_desde: enDias(5),
+        fecha_hasta: enDias(5),
+      };
+    }
+
+    it('401: sin token no genera turnos', async () => {
+      await request(server())
+        .post('/turnos/generar')
+        .send(cuerpoGeneracion())
+        .expect(401);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('403: un socio no puede generar turnos', async () => {
+      const token = await tokenUsuario();
+
+      await request(server())
+        .post('/turnos/generar')
+        .set('Authorization', `Bearer ${token}`)
+        .send(cuerpoGeneracion())
+        .expect(403);
+
+      expect(turnos.size).toBe(3);
+    });
+
+    it('201: el administrador genera un día con creados y salteados', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos/generar')
+        .set('Authorization', `Bearer ${token}`)
+        .send(cuerpoGeneracion())
+        .expect(201);
+
+      expect(respuesta.body).toEqual({ creados: 14, salteados: 0 });
+      expect(turnos.size).toBe(17);
+    });
+
+    it('400: fecha de calendario inexistente', async () => {
+      const token = await tokenAdmin();
+
+      const respuesta = await request(server())
+        .post('/turnos/generar')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ ...cuerpoGeneracion(), fecha_desde: '2026-02-30' })
+        .expect(400);
+
+      expect(respuesta.body.message).toEqual([
+        'La fecha indicada no es una fecha de calendario válida.',
+      ]);
+      expect(turnos.size).toBe(3);
     });
   });
 
@@ -781,7 +964,7 @@ describe('Turnos (e2e)', () => {
       await request(server())
         .patch(`/turnos/${creado.body.id}`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ hora_fin: '13:00' })
+        .send({ hora_fin: '12:00' })
         .expect(200);
 
       await request(server())
