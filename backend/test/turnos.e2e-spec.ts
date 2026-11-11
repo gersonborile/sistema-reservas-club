@@ -8,6 +8,7 @@ import { AppModule } from '../src/app.module.js';
 import { validationPipe } from '../src/comun/validation-pipe.js';
 import { RolUsuario } from '../src/generated/prisma/client.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { hoyEnZonaClub } from '../src/turnos/horario-club.js';
 
 process.env.JWT_SECRET ??= 'secreto-de-prueba-e2e-no-usar-en-produccion';
 process.env.JWT_EXPIRES_IN ??= '1h';
@@ -31,8 +32,8 @@ type FilaTurno = {
 };
 
 function enDias(dias: number): string {
-  const fecha = new Date();
-  fecha.setUTCHours(0, 0, 0, 0);
+  // Parte del día vigente en Argentina, igual que la validación del servicio.
+  const fecha = new Date(`${hoyEnZonaClub()}T00:00:00.000Z`);
   fecha.setUTCDate(fecha.getUTCDate() + dias);
   return fecha.toISOString().slice(0, 10);
 }
@@ -227,11 +228,7 @@ describe('Turnos (e2e)', () => {
           return Promise.resolve(eliminado);
         }),
         createMany: vi.fn(
-          ({
-            data,
-          }: {
-            data: Array<Omit<FilaTurno, 'id' | 'disponible'>>;
-          }) => {
+          ({ data }: { data: Array<Omit<FilaTurno, 'id' | 'disponible'>> }) => {
             for (const fila of data) {
               const creado: FilaTurno = {
                 id: randomUUID(),
@@ -300,9 +297,9 @@ describe('Turnos (e2e)', () => {
         .get(`/turnos?cancha_id=${CANCHA_TENIS}`)
         .expect(200);
 
-      expect(respuesta.body.map((turno: { id: string }) => turno.id).sort()).toEqual(
-        [TURNO_TENIS_1, TURNO_TENIS_2].sort(),
-      );
+      expect(
+        respuesta.body.map((turno: { id: string }) => turno.id).sort(),
+      ).toEqual([TURNO_TENIS_1, TURNO_TENIS_2].sort());
     });
 
     it('200: filtra por disciplina_id', async () => {
@@ -320,9 +317,9 @@ describe('Turnos (e2e)', () => {
         .get(`/turnos?fecha=${enDias(3)}`)
         .expect(200);
 
-      expect(respuesta.body.map((turno: { id: string }) => turno.id).sort()).toEqual(
-        [TURNO_TENIS_1, TURNO_TENIS_2].sort(),
-      );
+      expect(
+        respuesta.body.map((turno: { id: string }) => turno.id).sort(),
+      ).toEqual([TURNO_TENIS_1, TURNO_TENIS_2].sort());
     });
 
     it('200: pagina con page y limit devolviendo el subconjunto esperado', async () => {
@@ -338,7 +335,9 @@ describe('Turnos (e2e)', () => {
       const ids = [...primera.body, ...segunda.body].map(
         (turno: { id: string }) => turno.id,
       );
-      expect(ids.sort()).toEqual([TURNO_TENIS_1, TURNO_TENIS_2, TURNO_PADEL].sort());
+      expect(ids.sort()).toEqual(
+        [TURNO_TENIS_1, TURNO_TENIS_2, TURNO_PADEL].sort(),
+      );
       expect(
         primera.body.every((turno: Record<string, unknown>) =>
           Object.hasOwn(turno, 'disponible'),
@@ -904,9 +903,7 @@ describe('Turnos (e2e)', () => {
         .patch(`/turnos/${TURNO_TENIS_1}`)
         .send({ hora_inicio: '10:00' })
         .expect(401);
-      await request(server())
-        .delete(`/turnos/${TURNO_TENIS_1}`)
-        .expect(401);
+      await request(server()).delete(`/turnos/${TURNO_TENIS_1}`).expect(401);
 
       expect(turnos.size).toBe(3);
       expect(turnos.get(TURNO_TENIS_1)?.horaInicio).toBe('08:00');
