@@ -84,7 +84,7 @@ El sistema SHALL permitir consultar reservas mediante `GET /api/v1/reservas/mis`
 - **THEN** el sistema responde `401 Unauthorized`
 
 ### Requirement: Cancelación de reservas
-El sistema SHALL permitir cancelar una reserva mediante `PATCH /api/v1/reservas/:id/cancelar`. Un usuario `USUARIO` SHALL cancelar solo sus propias reservas; `ADMINISTRADOR` SHALL poder cancelar cualquier reserva. La cancelación SHALL ser válida solo si faltan al menos 2 horas para el inicio del turno. Al cancelar, la reserva pasa a estado `CANCELADA`, el turno vuelve a `disponible = true` y el stock de los equipamientos del alquiler asociado, si existe, vuelve al catálogo (capacidad `rentals`), todo en la misma transacción.
+El sistema SHALL permitir cancelar una reserva mediante `PATCH /api/v1/reservas/:id/cancelar`. Un `USUARIO` SHALL cancelar solo sus propias reservas; un `ADMINISTRADOR`, cualquiera. La cancelación SHALL ser válida solo si faltan al menos 2 horas para el inicio del turno. Al cancelar, en una misma transacción, la reserva pasa a `CANCELADA`, el turno vuelve a `disponible = true` y, si hay alquiler, su stock vuelve al catálogo (capacidad `rentals`).
 
 #### Scenario: Cancelar reserva propia dentro de la ventana
 - **WHEN** un usuario `USUARIO` hace `PATCH /api/v1/reservas/:id/cancelar` sobre una de sus reservas cuyo turno comienza en más de 2 horas
