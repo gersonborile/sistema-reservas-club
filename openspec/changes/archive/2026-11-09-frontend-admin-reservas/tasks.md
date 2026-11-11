@@ -18,4 +18,4 @@
 
 - [x] 4.1 Correr `typecheck`, `lint` y `build` del frontend y verificar que terminan sin errores
 - [x] 4.2 Con backend y Postgres locales, recorrer a mano: crear turnos como administrador, reservarlos como socio, cobrar el pago y cancelar, y verificar los escenarios de `specs/frontend-admin-reservas/spec.md`
-- [ ] 4.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que el administrador puede crear un turno y que un socio lo reserva
+- [x] 4.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que el administrador puede crear un turno y que un socio lo reserva

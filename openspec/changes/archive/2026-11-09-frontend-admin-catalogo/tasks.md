@@ -14,4 +14,4 @@
 
 - [x] 3.1 Correr `typecheck`, `lint` y `build` del frontend y verificar que terminan sin errores
 - [x] 3.2 Con backend y Postgres locales, recorrer a mano el panel como administrador y verificar los escenarios de `specs/frontend-admin-catalogo/spec.md`, incluido que un socio no accede a `/admin`
-- [ ] 3.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que el administrador puede crear una cancha y editar stock
+- [x] 3.3 Tras el deploy, verificar en `https://matchpoint.alquilerespunilla.com.ar` que el administrador puede crear una cancha y editar stock

@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { hoyEnZonaClub } from './horario-club.js';
 import {
   MENSAJE_CANCHA_NO_ENCONTRADA,
   MENSAJE_DISCIPLINA_FUERA_DE_CANCHA,
@@ -26,8 +27,8 @@ const DISCIPLINA = '33333333-3333-4333-8333-333333333333';
 const TURNO = '55555555-5555-4555-8555-555555555555';
 
 function enDias(dias: number): string {
-  const fecha = new Date();
-  fecha.setUTCHours(0, 0, 0, 0);
+  // Parte del día vigente en Argentina, igual que la validación del servicio.
+  const fecha = new Date(`${hoyEnZonaClub()}T00:00:00.000Z`);
   fecha.setUTCDate(fecha.getUTCDate() + dias);
   return fecha.toISOString().slice(0, 10);
 }
@@ -246,6 +247,15 @@ describe('TurnosService', () => {
       expect(prisma.turno.create).not.toHaveBeenCalled();
     });
 
+    it('rechaza con 400 la fecha de ayer con el reloj de noche en Argentina', async () => {
+      // 23:30 del 10/11 en Argentina, ya 11/11 en UTC: «ayer» es el 09/11.
+      vi.setSystemTime(new Date('2026-11-11T02:30:00Z'));
+
+      await expect(
+        service.crear({ ...dtoValido(), fecha: enDias(-1) }),
+      ).rejects.toThrow(MENSAJE_FECHA_PASADA);
+    });
+
     it('acepta un turno para hoy con el reloj de noche en Argentina', async () => {
       vi.setSystemTime(new Date('2026-11-10T00:30:00Z'));
 
@@ -402,7 +412,9 @@ describe('TurnosService', () => {
 
       expect(resultado).toEqual({ creados: 12, salteados: 2 });
       const { data } = prisma.turno.createMany.mock.calls[0][0];
-      const inicios = data.map((fila: { horaInicio: string }) => fila.horaInicio);
+      const inicios = data.map(
+        (fila: { horaInicio: string }) => fila.horaInicio,
+      );
       expect(inicios).not.toContain('09:00');
       expect(inicios).not.toContain('10:00');
       expect(inicios).toContain('11:00');
@@ -533,7 +545,9 @@ describe('TurnosService', () => {
 
       await service.eliminar(TURNO);
 
-      expect(prisma.turno.delete).toHaveBeenCalledWith({ where: { id: TURNO } });
+      expect(prisma.turno.delete).toHaveBeenCalledWith({
+        where: { id: TURNO },
+      });
     });
 
     it('rechaza con 409 un turno con reserva activa', async () => {
