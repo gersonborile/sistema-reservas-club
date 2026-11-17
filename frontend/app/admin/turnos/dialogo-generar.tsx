@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -69,15 +69,15 @@ export default function DialogoGenerar({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm px-4"
       role="presentation"
     >
       <div
         role="dialog"
         aria-label="Generar turnos"
-        className="w-full max-w-lg rounded-lg border border-neutral-800 bg-white p-6"
+        className="w-full max-w-lg rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl"
       >
-        <h2 className="mb-4 text-base font-bold text-neutral-900">
+        <h2 className="mb-4 text-lg font-semibold tracking-tight text-slate-900">
           Generar turnos
         </h2>
         <div className="flex flex-col gap-3">
@@ -129,7 +129,7 @@ export default function DialogoGenerar({
           {resultado ? (
             <div
               role="status"
-              className="rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-neutral-900"
+              className="rounded-xl border border-amber-200/80 bg-amber-50 p-3 text-sm text-amber-900"
             >
               Turnos creados: {resultado.creados}. Turnos salteados:{" "}
               {resultado.salteados}.
@@ -138,7 +138,7 @@ export default function DialogoGenerar({
           {error ? (
             <div
               role="alert"
-              className="rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-red-600"
+              className="rounded-xl border border-red-200/80 bg-red-50 p-3 text-sm text-red-600"
             >
               {error}
             </div>
@@ -166,3 +166,5 @@ export default function DialogoGenerar({
     </div>
   );
 }
+
+

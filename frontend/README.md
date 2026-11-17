@@ -22,11 +22,41 @@ cp .env.example .env.local
 | Desarrollo | `http://localhost:3001` (es el valor por defecto si no se define la variable) |
 | Producción | `https://matchpoint.alquilerespunilla.com.ar/api` |
 
-En producción la variable es **obligatoria** y se fija al compilar (`next build`); en Docker se pasa como argumento de construcción (`NEXT_PUBLIC_API_URL`).
+En producción la variable es **obligatoria** y se fija al compilar (`next build`); en Docker se pasa como argumento de construcción (`NEXT_PUBLIC_API_URL`). El valor de producción incluye el sufijo `/api` porque Caddy quita ese prefijo antes de reenviar al backend.
 
 ## Cómo levantarlo
 
+### 1. Base de datos y backend
+
+Desde la raíz del repositorio, levantar PostgreSQL y la API con el override local (expone `5432` y `3001`):
+
 ```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db backend
+```
+
+El contenedor del backend aplica las migraciones al iniciar. Para cargar los datos de prueba:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.local.yml exec backend npm run db:seed
+```
+
+Usuarios del seed:
+
+| Rol | Email | Contraseña |
+| --- | --- | --- |
+| Administrador | `admin@clubdeportivo.test` | `Admin123!` |
+| Socio | `socio1@clubdeportivo.test` | `Socio123!` |
+| Socio | `socio2@clubdeportivo.test` | `Socio123!` |
+
+El seed crea turnos para los próximos 3 días (desde mañana), **no para hoy**. Para probar la Home con turnos de hoy, iniciar sesión como administrador, abrir `/admin/turnos` y generar turnos para la fecha actual.
+
+Comprobar que la API responde en <http://localhost:3001/disciplinas>.
+
+### 2. Frontend
+
+```bash
+cd frontend
+cp .env.example .env.local
 npm install
 npm run dev
 ```
@@ -48,16 +78,21 @@ Abrir <http://localhost:3000>. Si el backend no está disponible, las pantallas 
 
 ```text
 app/
-├── (protegido)/   # pantallas del socio: canchas, reservar, mis reservas
+├── canchas/       # listado público y reserva protegida con retorno al login
+├── (protegido)/   # mis reservas y demás pantallas que exigen sesión
 ├── admin/         # panel del administrador: resumen, canchas, equipamiento, turnos y reservas
 ├── componentes/   # componentes compartidos
 ├── login/ registro/
 lib/
 ├── api.ts            # cliente HTTP del backend y sus funciones
 ├── adaptadores.ts    # conversión de las respuestas del backend a lo que muestra la interfaz
+├── fechas.ts         # fechas y horas locales
+├── navegacion.ts     # retorno seguro después del login
 ├── sesion.ts · almacen-sesion.ts · use-sesion.ts   # sesión del usuario
-└── fechas.ts         # fechas y horas locales
+└── franjas.ts        # apertura y cierre del club
 ```
+
+`/canchas` se puede ver sin sesión. Al elegir un turno libre sin token, la app redirige a `/login?redirigir=<ruta>` y vuelve a la reserva después de autenticarse.
 
 ## Sesión
 

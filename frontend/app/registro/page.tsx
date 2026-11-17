@@ -13,11 +13,11 @@ export default function PaginaRegistro() {
     <TarjetaAuth
       titulo="Crear cuenta"
       pie={
-        <p className="text-neutral-600">
+        <p className="text-slate-600">
           ¿Ya tenés cuenta?{" "}
           <Link
             href="/login"
-            className="font-medium text-neutral-900 underline underline-offset-4"
+            className="font-medium text-slate-900 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900"
           >
             Iniciá sesión
           </Link>

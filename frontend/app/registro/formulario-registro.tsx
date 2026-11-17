@@ -98,7 +98,7 @@ export function FormularioRegistro() {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {enviando ? "Creando cuenta…" : "Crear cuenta"}
       </button>

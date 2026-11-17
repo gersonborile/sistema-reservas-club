@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -176,10 +176,10 @@ export default function TarjetaCanchas({
   return (
     <section
       id="canchas"
-      className="rounded-lg border border-neutral-200 bg-white p-5"
+      className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-neutral-900">Canchas</h2>
+        <h2 className="text-base font-semibold text-slate-900">Canchas</h2>
         <button
           type="button"
           disabled={ocupado}
@@ -193,7 +193,7 @@ export default function TarjetaCanchas({
       {errorAccion ? (
         <div
           role="alert"
-          className="mb-4 rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-red-600"
+          className="mb-4 rounded-xl border border-red-200/80 bg-red-50 p-3 text-sm text-red-600"
         >
           {errorAccion}
         </div>
@@ -203,29 +203,29 @@ export default function TarjetaCanchas({
         <form
           onSubmit={guardarNuevaCancha}
           noValidate
-          className="mb-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4"
+          className="mb-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
         >
           <div className="flex flex-wrap items-end gap-3">
             <label className="min-w-[160px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Nombre
               </span>
               <input
                 value={nombreCrear}
                 onChange={(evento) => setNombreCrear(evento.target.value)}
                 placeholder="Nombre de la cancha"
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
               />
               <ErrorDeCampo campos={camposCrear} campo="nombre" />
             </label>
             <label className="min-w-[140px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Disciplina
               </span>
               <select
                 value={disciplinaCrear}
                 onChange={(evento) => setDisciplinaCrear(evento.target.value)}
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
               >
                 {disciplinas.map((disciplina) => (
                   <option key={disciplina.id} value={disciplina.id}>
@@ -236,19 +236,19 @@ export default function TarjetaCanchas({
               <ErrorDeCampo campos={camposCrear} campo="disciplinaIds" />
             </label>
             <label className="min-w-[140px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Ubicación
               </span>
               <input
                 value={ubicacionCrear}
                 onChange={(evento) => setUbicacionCrear(evento.target.value)}
                 placeholder="Sector A"
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
               />
               <ErrorDeCampo campos={camposCrear} campo="ubicacion" />
             </label>
             <label className="min-w-[100px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Capacidad
               </span>
               <input
@@ -257,7 +257,7 @@ export default function TarjetaCanchas({
                 value={capacidadCrear}
                 onChange={(evento) => setCapacidadCrear(evento.target.value)}
                 placeholder="4"
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
               />
               <ErrorDeCampo campos={camposCrear} campo="capacidad" />
             </label>
@@ -291,7 +291,7 @@ export default function TarjetaCanchas({
 
       <table className="w-full text-left text-sm">
         <thead>
-          <tr className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
+          <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
             <th className="py-2 pr-2 font-medium">Nombre</th>
             <th className="py-2 pr-2 font-medium">Disciplina</th>
             <th className="py-2 pr-2 font-medium">Ubicación</th>
@@ -303,7 +303,7 @@ export default function TarjetaCanchas({
         <tbody>
           {canchas.map((cancha) =>
             editandoId === cancha.id ? (
-              <tr key={cancha.id} className="border-b border-neutral-200">
+              <tr key={cancha.id} className="border-b border-slate-100">
                 <td colSpan={6} className="py-3">
                   <form
                     onSubmit={guardarEdicion}
@@ -311,7 +311,7 @@ export default function TarjetaCanchas({
                     className="flex flex-wrap items-start gap-3"
                   >
                     <label className="min-w-[160px] flex-1">
-                      <span className="mb-1 block text-xs text-neutral-500">
+                      <span className="mb-1 block text-xs text-slate-500">
                         Nombre
                       </span>
                       <input
@@ -320,12 +320,12 @@ export default function TarjetaCanchas({
                           setNombreEditar(evento.target.value)
                         }
                         placeholder="Nombre de la cancha"
-                        className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                       />
                       <ErrorDeCampo campos={camposEditar} campo="nombre" />
                     </label>
                     <label className="min-w-[140px] flex-1">
-                      <span className="mb-1 block text-xs text-neutral-500">
+                      <span className="mb-1 block text-xs text-slate-500">
                         Disciplina
                       </span>
                       <select
@@ -333,7 +333,7 @@ export default function TarjetaCanchas({
                         onChange={(evento) =>
                           setDisciplinaEditar(evento.target.value)
                         }
-                        className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
                       >
                         {disciplinas.map((disciplina) => (
                           <option key={disciplina.id} value={disciplina.id}>
@@ -344,7 +344,7 @@ export default function TarjetaCanchas({
                       <ErrorDeCampo campos={camposEditar} campo="disciplinaIds" />
                     </label>
                     <label className="min-w-[140px] flex-1">
-                      <span className="mb-1 block text-xs text-neutral-500">
+                      <span className="mb-1 block text-xs text-slate-500">
                         Ubicación
                       </span>
                       <input
@@ -353,12 +353,12 @@ export default function TarjetaCanchas({
                           setUbicacionEditar(evento.target.value)
                         }
                         placeholder="Sector A"
-                        className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                       />
                       <ErrorDeCampo campos={camposEditar} campo="ubicacion" />
                     </label>
                     <label className="min-w-[100px] flex-1">
-                      <span className="mb-1 block text-xs text-neutral-500">
+                      <span className="mb-1 block text-xs text-slate-500">
                         Capacidad
                       </span>
                       <input
@@ -368,7 +368,7 @@ export default function TarjetaCanchas({
                         onChange={(evento) =>
                           setCapacidadEditar(evento.target.value)
                         }
-                        className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                        className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                       />
                       <ErrorDeCampo campos={camposEditar} campo="capacidad" />
                     </label>
@@ -405,26 +405,26 @@ export default function TarjetaCanchas({
                 </td>
               </tr>
             ) : (
-              <tr key={cancha.id} className="border-b border-neutral-200">
-                <td className="py-3 pr-2 font-bold text-neutral-900">
+              <tr key={cancha.id} className="border-b border-slate-100">
+                <td className="py-3 pr-2 font-bold text-slate-900">
                   {cancha.nombre}
                 </td>
-                <td className="py-3 pr-2 text-neutral-700">
+                <td className="py-3 pr-2 text-slate-700">
                   {etiquetaDisciplinas(cancha)}
                 </td>
-                <td className="py-3 pr-2 text-neutral-700">
+                <td className="py-3 pr-2 text-slate-700">
                   {cancha.ubicacion}
                 </td>
-                <td className="py-3 pr-2 text-neutral-700">
+                <td className="py-3 pr-2 text-slate-700">
                   {cancha.capacidad}
                 </td>
                 <td className="py-3 pr-2">
                   {cancha.activa ? (
-                    <span className="inline-block rounded border border-neutral-900 px-2 py-0.5 text-xs font-medium text-neutral-900">
+                    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200/60">
                       Activa
                     </span>
                   ) : (
-                    <span className="inline-block rounded border border-neutral-300 px-2 py-0.5 text-xs font-medium text-neutral-500">
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 ring-1 ring-inset ring-slate-200/70">
                       Inactiva
                     </span>
                   )}
@@ -471,3 +471,4 @@ export default function TarjetaCanchas({
     </section>
   );
 }
+

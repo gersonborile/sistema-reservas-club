@@ -5,11 +5,11 @@ type Props = {
 
 export default function TarjetaIndicador({ etiqueta, valor }: Props) {
   return (
-    <section className="rounded-lg border border-neutral-200 bg-white p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+    <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {etiqueta}
       </p>
-      <p className="mt-2 text-3xl font-bold text-neutral-900">{valor}</p>
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">{valor}</p>
     </section>
   );
 }
