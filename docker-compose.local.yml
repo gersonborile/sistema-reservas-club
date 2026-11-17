@@ -1,0 +1,17 @@
+services:
+  db:
+    environment:
+      POSTGRES_USER: club
+      POSTGRES_PASSWORD: club
+      POSTGRES_DB: reservas_canchas
+    ports:
+      - "5432:5432"
+
+  backend:
+    environment:
+      DATABASE_URL: postgresql://club:club@db:5432/reservas_canchas?schema=public
+      JWT_SECRET: secreto-local-solo-para-desarrollo
+      JWT_EXPIRES_IN: 1h
+      CORS_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
