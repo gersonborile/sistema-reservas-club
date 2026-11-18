@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -49,7 +49,7 @@ function CeldaPago({
 }) {
   if (!pago) {
     return (
-      <span className="text-xs text-neutral-500">
+      <span className="text-xs text-slate-500">
         {tieneDato ? "Sin pago" : "Sin dato"}
       </span>
     );
@@ -168,13 +168,13 @@ export default function ReservasClient() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-neutral-900">Reservas</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Reservas</h1>
       </div>
 
       {aviso ? (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-neutral-900"
+          className="flex items-center gap-3 rounded-xl border border-amber-200/80 bg-amber-50 p-3 text-sm text-amber-900"
         >
           <span className="flex-1">{aviso}</span>
           <button
@@ -190,17 +190,17 @@ export default function ReservasClient() {
       {avisoPagos ? (
         <div
           role="alert"
-          className="rounded border border-neutral-300 bg-white p-3 text-sm text-neutral-700"
+          className="rounded-xl border border-slate-200/80 bg-white p-3 text-sm text-slate-700"
         >
           {avisoPagos}
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-4 rounded-lg border border-neutral-300 bg-white p-4">
+      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div className="flex w-48 flex-col gap-1">
           <label
             htmlFor="filtro-estado"
-            className="text-[10px] uppercase tracking-wide text-neutral-500"
+            className="text-xs font-medium uppercase tracking-wide text-slate-500"
           >
             Estado
           </label>
@@ -209,20 +209,20 @@ export default function ReservasClient() {
             value={filtro}
             onChange={(e) => setFiltro(e.target.value as FiltroReservaEstado)}
             disabled={bloqueado}
-            className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100"
+            className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none disabled:bg-slate-50"
           >
             <option value="Todas">Todas</option>
             <option value="Confirmadas">Confirmadas</option>
             <option value="Canceladas">Canceladas</option>
           </select>
         </div>
-        <p className="mb-2 text-xs text-neutral-500">
+        <p className="mb-2 text-xs text-slate-500">
           Ordenadas por fecha y hora. El backend identifica al socio por su id.
         </p>
       </div>
 
       {cargando ? (
-        <p className="text-sm text-neutral-500">Cargando reservas...</p>
+        <p className="text-sm text-slate-500">Cargando reservas...</p>
       ) : error ? (
         <ErrorConReintento
           mensaje={error}
@@ -230,16 +230,16 @@ export default function ReservasClient() {
           onReintentar={() => setIntento((n) => n + 1)}
         />
       ) : visibles.length === 0 ? (
-        <div className="rounded-lg border border-neutral-300 bg-white px-6 py-12 text-center text-sm text-neutral-500">
+        <div className="rounded-2xl border border-slate-200/80 bg-white shadow-sm px-6 py-12 text-center text-sm text-slate-500">
           {filtro === "Todas"
             ? "No hay reservas registradas."
             : "No hay reservas con ese estado."}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-neutral-300 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-neutral-300 text-[10px] uppercase tracking-wide text-neutral-500">
+              <tr className="border-b border-slate-200/80 text-xs font-medium uppercase tracking-wide text-slate-500">
                 <th className="w-28 px-4 py-2 font-medium">Socio</th>
                 <th className="w-40 px-4 py-2 font-medium">Cancha</th>
                 <th className="w-28 px-4 py-2 font-medium">Fecha</th>
@@ -260,21 +260,21 @@ export default function ReservasClient() {
                 return (
                   <tr
                     key={reserva.id}
-                    className="border-b border-neutral-100 last:border-b-0"
+                    className="border-b border-slate-100 last:border-b-0"
                   >
                     <td
-                      className="px-4 py-3 text-neutral-900"
+                      className="px-4 py-3 text-slate-900"
                       title={reserva.usuarioId}
                     >
                       {etiquetaSocio(reserva.usuarioId)}
                     </td>
-                    <td className="px-4 py-3 text-neutral-900">
+                    <td className="px-4 py-3 text-slate-900">
                       {reserva.canchaNombre}
                     </td>
-                    <td className="px-4 py-3 text-neutral-900">
+                    <td className="px-4 py-3 text-slate-900">
                       {formatearFechaAbreviada(reserva.fecha)}
                     </td>
-                    <td className="px-4 py-3 text-neutral-900">
+                    <td className="px-4 py-3 text-slate-900">
                       {reserva.hora} a {reserva.horaFin}
                     </td>
                     <td className="px-4 py-3">
@@ -287,7 +287,7 @@ export default function ReservasClient() {
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         {enConfirmacion ? (
                           <>
-                            <span className="text-xs text-neutral-600">
+                            <span className="text-xs text-slate-600">
                               ¿Cancelar?
                             </span>
                             <button
@@ -343,7 +343,7 @@ export default function ReservasClient() {
             </tbody>
           </table>
           {actualizando ? (
-            <p className="border-t border-neutral-100 px-4 py-2 text-xs text-neutral-500">
+            <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
               Actualizando...
             </p>
           ) : null}
@@ -362,3 +362,5 @@ export default function ReservasClient() {
     </div>
   );
 }
+
+

@@ -8,23 +8,29 @@ export const metadata: Metadata = {
   title: "Iniciar sesión",
 };
 
-export default function PaginaLogin() {
+type Props = {
+  searchParams: Promise<{ redirigir?: string | string[] }>;
+};
+
+export default async function PaginaLogin({ searchParams }: Props) {
+  const { redirigir } = await searchParams;
+  const destino = Array.isArray(redirigir) ? redirigir[0] : redirigir;
   return (
     <TarjetaAuth
       titulo="Iniciar sesión"
       pie={
-        <p className="text-neutral-600">
+        <p className="text-slate-600">
           ¿No tenés cuenta?{" "}
           <Link
             href="/registro"
-            className="font-medium text-neutral-900 underline underline-offset-4"
+            className="font-medium text-slate-900 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900"
           >
             Registrate
           </Link>
         </p>
       }
     >
-      <FormularioLogin />
+      <FormularioLogin redirigir={destino} />
     </TarjetaAuth>
   );
 }

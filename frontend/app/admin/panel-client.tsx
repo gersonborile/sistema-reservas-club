@@ -128,17 +128,17 @@ export default function PanelClient() {
   }
 
   if (cargando) {
-    return <p className="text-sm text-neutral-500">Cargando panel...</p>;
+    return <p className="text-sm text-slate-500">Cargando panel...</p>;
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
         <p className="text-sm text-red-600">{error}</p>
         <button
           type="button"
           onClick={recargar}
-          className="mt-3 rounded bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+          className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
         >
           Reintentar
         </button>
@@ -154,7 +154,7 @@ export default function PanelClient() {
       {aviso ? (
         <div
           role="alert"
-          className="rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-red-600"
+          className="rounded-xl border border-red-200/80 bg-red-50 p-3 text-sm text-red-600"
         >
           No se pudieron actualizar los datos. {aviso}
         </div>

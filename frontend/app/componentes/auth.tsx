@@ -8,27 +8,27 @@ type TarjetaAuthProps = {
 
 export function TarjetaAuth({ titulo, children, pie }: TarjetaAuthProps) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-neutral-100 px-6 py-16 text-neutral-900">
-      <div className="w-full max-w-md rounded-xl border border-neutral-200 bg-white p-8 shadow-sm">
+    <main className="flex flex-1 items-center justify-center bg-slate-50 px-6 py-16 text-slate-900">
+      <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white p-8 shadow-sm sm:p-10">
         <div className="flex flex-col items-center gap-3">
           <span
             aria-hidden="true"
-            className="flex h-12 w-12 items-center justify-center rounded-lg bg-neutral-200 text-base font-semibold text-neutral-800"
+            className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold tracking-tight text-white"
           >
-            CD
+            MP
           </span>
-          <p className="text-xs tracking-wide text-neutral-500">
-            Club Deportivo · Reservas
+          <p className="text-xs font-medium tracking-wide text-slate-500">
+            MatchPoint · Reservas deportivas
           </p>
         </div>
 
-        <h1 className="mt-6 text-center text-xl font-semibold tracking-tight">
+        <h1 className="mt-7 text-center text-2xl font-semibold tracking-tight text-slate-900">
           {titulo}
         </h1>
 
-        <div className="mt-6">{children}</div>
+        <div className="mt-8">{children}</div>
 
-        {pie ? <div className="mt-6 text-center text-sm">{pie}</div> : null}
+        {pie ? <div className="mt-8 text-center text-sm text-slate-600">{pie}</div> : null}
       </div>
     </main>
   );
@@ -42,11 +42,11 @@ type AvisoProps = {
 export function Aviso({ tono, children }: AvisoProps) {
   const estilos =
     tono === "error"
-      ? "border-red-200 bg-red-50 text-red-700"
-      : "border-emerald-200 bg-emerald-50 text-emerald-800";
+      ? "border-red-200/80 bg-red-50 text-red-700"
+      : "border-emerald-200/80 bg-emerald-50 text-emerald-800";
 
   return (
-    <p role="alert" className={`rounded-lg border px-3 py-2 text-sm ${estilos}`}>
+    <p role="alert" className={`rounded-xl border px-3.5 py-2.5 text-sm ${estilos}`}>
       {children}
     </p>
   );
@@ -77,7 +77,7 @@ export function Campo({
 }: CampoProps) {
   return (
     <div>
-      <label htmlFor={id} className="block text-sm font-medium text-neutral-800">
+      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
         {label}
       </label>
       <input
@@ -90,12 +90,12 @@ export function Campo({
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         onChange={(evento) => onChange(evento.target.value)}
-        className={`mt-1 block w-full rounded-lg border px-3 py-2 text-sm text-neutral-900 outline-none transition focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 ${
-          error ? "border-red-300 bg-red-50/40" : "border-neutral-300 bg-white"
+        className={`mt-1.5 block w-full rounded-xl border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 ${
+          error ? "border-red-300 bg-red-50/30" : "border-slate-200 bg-white"
         }`}
       />
       {error ? (
-        <p id={`${id}-error`} className="mt-1 text-xs text-red-600">
+        <p id={`${id}-error`} className="mt-1.5 text-xs text-red-600">
           {error}
         </p>
       ) : null}

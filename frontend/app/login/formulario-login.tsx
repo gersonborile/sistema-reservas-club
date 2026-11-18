@@ -5,9 +5,10 @@ import { useState } from "react";
 
 import { Aviso, Campo } from "@/app/componentes/auth";
 import { ApiError, iniciarSesion } from "@/lib/api";
+import { rutaRetornoSegura } from "@/lib/navegacion";
 import type { CampoInvalido } from "@/lib/tipos";
 
-export function FormularioLogin() {
+export function FormularioLogin({ redirigir }: { redirigir?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [contrasena, setContrasena] = useState("");
@@ -23,6 +24,11 @@ export function FormularioLogin() {
 
     try {
       const sesion = await iniciarSesion({ email, contrasena });
+      const retorno = rutaRetornoSegura(redirigir);
+      if (retorno) {
+        router.push(retorno);
+        return;
+      }
       router.push(sesion.usuario.rol === "administrador" ? "/admin" : "/");
     } catch (error) {
       if (error instanceof ApiError) {
@@ -65,7 +71,7 @@ export function FormularioLogin() {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-2 w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {enviando ? "Ingresando…" : "Iniciar sesión"}
       </button>

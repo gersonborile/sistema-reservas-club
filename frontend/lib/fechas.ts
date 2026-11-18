@@ -25,6 +25,29 @@ export function obtenerFechaLocalHoy(): string {
   return `${anio}-${mes}-${dia}`;
 }
 
+/** Suma días a una fecha ISO local; devuelve la fecha original si es inválida. */
+export function sumarDias(fecha: string, dias: number): string {
+  const date = parsearFecha(fecha);
+  if (!date) return fecha;
+  date.setDate(date.getDate() + dias);
+  const anio = date.getFullYear();
+  const mes = String(date.getMonth() + 1).padStart(2, "0");
+  const dia = String(date.getDate()).padStart(2, "0");
+  return `${anio}-${mes}-${dia}`;
+}
+
+/** Fecha ISO local de mañana. */
+export function obtenerFechaLocalManana(): string {
+  return sumarDias(obtenerFechaLocalHoy(), 1);
+}
+
+/** "hoy", "mañana" o "el DD/MM" según la fecha y la referencia. */
+export function etiquetaFechaRelativa(fecha: string, hoy: string): string {
+  if (fecha === hoy) return "hoy";
+  if (fecha === sumarDias(hoy, 1)) return "mañana";
+  return `el ${formatearFecha(fecha)}`;
+}
+
 /** Fecha ISO (AAAA-MM-DD) a "DD/MM"; devuelve el valor original si no es válida. */
 export function formatearFecha(fecha: string): string {
   const date = parsearFecha(fecha);
@@ -46,6 +69,52 @@ export function diaSemana(fecha: string): string {
   const date = parsearFecha(fecha);
   if (!date) return "";
   return DIAS[date.getDay()];
+}
+
+export type DiaCalendario = {
+  fecha: string;
+  dia: string;
+  numero: string;
+  etiqueta: string;
+  esHoy: boolean;
+};
+
+/**
+ * Genera una franja de días consecutivos desde `desde`. Devuelve una lista
+ * vacía si la fecha inicial es inválida o la cantidad no es positiva.
+ */
+export function generarDiasCalendario(
+  desde: string,
+  cantidad = 7,
+): DiaCalendario[] {
+  if (!parsearFecha(desde) || !Number.isInteger(cantidad) || cantidad <= 0) {
+    return [];
+  }
+  const hoy = obtenerFechaLocalHoy();
+  const manana = sumarDias(hoy, 1);
+
+  return Array.from({ length: cantidad }, (_, indice) => {
+    const fecha = sumarDias(desde, indice);
+    const date = parsearFecha(fecha);
+    if (!date) {
+      return {
+        fecha,
+        dia: "",
+        numero: "",
+        etiqueta: fecha,
+        esHoy: false,
+      };
+    }
+    const etiqueta =
+      fecha === hoy ? "Hoy" : fecha === manana ? "Mañana" : DIAS[date.getDay()];
+    return {
+      fecha,
+      dia: DIAS_ABBREV[date.getDay()],
+      numero: String(date.getDate()).padStart(2, "0"),
+      etiqueta,
+      esHoy: fecha === hoy,
+    };
+  });
 }
 
 /** Hora "HH:MM" una hora después, en el mismo formato. */

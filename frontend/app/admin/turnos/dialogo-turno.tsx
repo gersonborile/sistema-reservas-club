@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import type { CanchaUI } from "@/lib/adaptadores";
 import { aEtiquetaDisciplina } from "@/lib/adaptadores";
@@ -48,15 +48,15 @@ export default function DialogoTurno({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm px-4"
       role="presentation"
     >
       <div
         role="dialog"
         aria-label={titulo}
-        className="w-full max-w-lg rounded-lg border border-neutral-800 bg-white p-6"
+        className="w-full max-w-lg rounded-lg border border-slate-200/80 bg-white p-6 shadow-xl"
       >
-        <h2 className="mb-4 text-base font-bold text-neutral-900">{titulo}</h2>
+        <h2 className="mb-4 text-lg font-semibold tracking-tight text-slate-900">{titulo}</h2>
         <div className="flex flex-col gap-3">
           <CampoSoloLectura
             id="cancha-turno"
@@ -78,7 +78,7 @@ export default function DialogoTurno({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-slate-500">
               Solo las disciplinas de esta cancha.
             </p>
           </Campo>
@@ -124,7 +124,7 @@ export default function DialogoTurno({
           {formulario.error ? (
             <div
               role="alert"
-              className="rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-red-600"
+              className="rounded-xl border border-red-200/80 bg-red-50 p-3 text-sm text-red-600"
             >
               {formulario.error}
             </div>
@@ -152,3 +152,5 @@ export default function DialogoTurno({
     </div>
   );
 }
+
+

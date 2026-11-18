@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type {
   CanchaApi,
+  DisciplinaApi,
   EquipamientoApi,
   PagoApi,
   ReservaApi,
@@ -12,7 +13,11 @@ import {
   aEquipamientoUI,
   aReservaUI,
   aTurnoUI,
+  agruparTurnosPorCancha,
   aMapaNombres,
+  aEtiquetaDisciplina,
+  contarTurnosLibresPorDisciplina,
+  descripcionDisciplina,
   montoSugerido,
   contarCanchasActivas,
   contarPocoStock,
@@ -21,8 +26,10 @@ import {
   filtrarReservasPorEstado,
   ordenarReservas,
   obtenerProximaReserva,
+  proximoTurnoLibre,
   puedeCancelarReserva,
   textoItemsAlquiler,
+  turnosLibresDesde,
   validarDatosTurno,
   validarGeneracion,
   validarHorario,
@@ -591,5 +598,98 @@ describe("puedeCancelarReserva", () => {
 
   it("es falsa para una reserva ya iniciada", () => {
     expect(puedeCancelarReserva(CONFIRMADA_PASADA, AHORA)).toBe(false);
+  });
+});
+
+describe("aEtiquetaDisciplina", () => {
+  it("capitaliza cada palabra sin cambiar el resto", () => {
+    expect(aEtiquetaDisciplina("fútbol 5")).toBe("Fútbol 5");
+    expect(aEtiquetaDisciplina("  pádel  ")).toBe("Pádel");
+  });
+
+  it("devuelve vacío si no hay nombre", () => {
+    expect(aEtiquetaDisciplina("")).toBe("");
+  });
+});
+
+describe("descripcionDisciplina", () => {
+  const base: DisciplinaApi = { id: "d-1", nombre: "tenis" };
+
+  it("usa las reglas cuando existen", () => {
+    expect(
+      descripcionDisciplina({ ...base, reglas: "Cancha dura." }),
+    ).toBe("Cancha dura.");
+  });
+
+  it("usa la duración típica cuando no hay reglas", () => {
+    expect(
+      descripcionDisciplina({ ...base, duracionTipicaMinutos: 90 }),
+    ).toBe("Turnos de 90 minutos.");
+  });
+
+  it("usa un texto neutro si no hay datos", () => {
+    expect(descripcionDisciplina(base)).toBe("Consultá los turnos disponibles.");
+  });
+});
+
+describe("agruparTurnosPorCancha", () => {
+  it("agrupa por cancha y ordena por hora de inicio", () => {
+    const turnos: TurnoApi[] = [
+      { ...TURNO_BACKEND, id: "t-2", cancha_id: "c-1", hora_inicio: "19:00" },
+      { ...TURNO_BACKEND, id: "t-3", cancha_id: "c-2", hora_inicio: "09:00" },
+      { ...TURNO_BACKEND, id: "t-1", cancha_id: "c-1", hora_inicio: "18:00" },
+    ];
+
+    const agrupados = agruparTurnosPorCancha(turnos);
+    expect(agrupados["c-1"].map((t) => t.id)).toEqual(["t-1", "t-2"]);
+    expect(agrupados["c-2"].map((t) => t.id)).toEqual(["t-3"]);
+  });
+});
+
+describe("turnosLibresDesde", () => {
+  it("deja solo libres con inicio igual o posterior a la hora", () => {
+    const turnos: TurnoApi[] = [
+      { ...TURNO_BACKEND, id: "t-1", hora_inicio: "17:00" },
+      { ...TURNO_BACKEND, id: "t-2", hora_inicio: "18:00" },
+      { ...TURNO_BACKEND, id: "t-3", hora_inicio: "19:00", disponible: false },
+      { ...TURNO_BACKEND, id: "t-4", hora_inicio: "20:00" },
+    ];
+
+    expect(turnosLibresDesde(turnos, "18:00").map((t) => t.id)).toEqual([
+      "t-2",
+      "t-4",
+    ]);
+  });
+});
+
+describe("contarTurnosLibresPorDisciplina", () => {
+  it("cuenta solo turnos disponibles por disciplina", () => {
+    const turnos: TurnoApi[] = [
+      { ...TURNO_BACKEND, id: "t-1", disciplina_id: "d-1" },
+      { ...TURNO_BACKEND, id: "t-2", disciplina_id: "d-1" },
+      { ...TURNO_BACKEND, id: "t-3", disciplina_id: "d-2", disponible: false },
+      { ...TURNO_BACKEND, id: "t-4", disciplina_id: "d-2" },
+    ];
+
+    expect(contarTurnosLibresPorDisciplina(turnos)).toEqual({
+      "d-1": 2,
+      "d-2": 1,
+    });
+  });
+});
+
+describe("proximoTurnoLibre", () => {
+  it("devuelve el libre con menor hora", () => {
+    const turnos: TurnoApi[] = [
+      { ...TURNO_BACKEND, id: "t-2", hora_inicio: "19:00" },
+      { ...TURNO_BACKEND, id: "t-1", hora_inicio: "18:00", disponible: false },
+      { ...TURNO_BACKEND, id: "t-3", hora_inicio: "20:00" },
+    ];
+
+    expect(proximoTurnoLibre(turnos)?.id).toBe("t-2");
+  });
+
+  it("devuelve null sin turnos libres", () => {
+    expect(proximoTurnoLibre([{ ...TURNO_BACKEND, disponible: false }])).toBeNull();
   });
 });

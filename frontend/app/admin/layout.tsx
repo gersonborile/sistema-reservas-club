@@ -15,8 +15,8 @@ function obtenerInicial(nombreCompleto: string): string {
 
 function claseNavegacion(activo: boolean): string {
   return activo
-    ? "flex items-center border-l-2 border-neutral-900 bg-neutral-100 px-3 py-2 text-sm font-medium text-neutral-900"
-    : "flex items-center px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50";
+    ? "flex items-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+    : "flex items-center rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
 }
 
 export default function LayoutPanelAdmin({
@@ -46,19 +46,22 @@ export default function LayoutPanelAdmin({
   }
 
   return (
-    <div className="min-h-screen flex bg-neutral-50 text-neutral-900">
-      <aside className="w-60 shrink-0 flex flex-col border-r border-neutral-200 bg-white">
-        <div className="flex items-center gap-2 border-b border-neutral-200 px-5 py-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-neutral-900 font-bold text-white">
-            CD
+    <div className="min-h-screen flex bg-slate-50 text-slate-900">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200/70 bg-white">
+        <div className="flex items-center gap-2.5 border-b border-slate-200/70 px-5 py-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white">
+            MP
           </div>
-          <p className="truncate text-sm font-semibold text-neutral-900">
-            Club · Admin
-          </p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold tracking-tight text-slate-900">
+              MatchPoint
+            </p>
+            <p className="text-xs text-slate-500">Administración</p>
+          </div>
         </div>
 
-        <nav className="flex-1 py-4">
-          <ul className="space-y-1 px-2">
+        <nav className="flex-1 py-5">
+          <ul className="space-y-1 px-3">
             <li>
               <Link href="/admin" className={claseNavegacion(pathname === "/admin")}>
                 Resumen
@@ -93,11 +96,11 @@ export default function LayoutPanelAdmin({
           </ul>
         </nav>
 
-        <div className="border-t border-neutral-200 px-5 py-4">
+        <div className="border-t border-slate-200/70 px-5 py-4">
           <button
             type="button"
             onClick={cerrarSesion}
-            className="text-sm text-neutral-500 hover:text-neutral-900"
+            className="text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
             Cerrar sesión
           </button>
@@ -105,21 +108,21 @@ export default function LayoutPanelAdmin({
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b border-neutral-200 bg-white">
+        <header className="border-b border-slate-200/70 bg-white/80 backdrop-blur-md">
           <div className="flex items-center justify-between px-8 py-4">
-            <h1 className="text-lg font-semibold text-neutral-900">
+            <h1 className="text-lg font-semibold tracking-tight text-slate-900">
               Panel de administración
             </h1>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-neutral-700">{nombre}</span>
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-200 font-semibold text-neutral-900">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-600">{nombre}</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-sm font-semibold text-slate-700">
                 {obtenerInicial(nombre)}
               </span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 px-8 py-6">{children}</main>
+        <main className="flex-1 px-8 py-8">{children}</main>
       </div>
     </div>
   );
