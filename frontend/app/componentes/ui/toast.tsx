@@ -58,8 +58,9 @@ export function ProveedorToasts({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    const pendientes = temporizadores.current;
     return () => {
-      for (const temporizador of temporizadores.current) {
+      for (const temporizador of pendientes) {
         window.clearTimeout(temporizador);
       }
     };

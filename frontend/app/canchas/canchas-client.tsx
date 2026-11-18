@@ -4,12 +4,18 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { Esqueleto } from "@/app/componentes/ui/esqueleto";
+import { EstadoError, EstadoVacio } from "@/app/componentes/ui/estado";
+import ImagenDisciplina from "@/app/componentes/ui/imagen-disciplina";
+import { Icono } from "@/app/componentes/ui/iconos";
+import { Insignia } from "@/app/componentes/ui/insignia";
 import type { CanchaUI, FranjaUI } from "@/lib/adaptadores";
 import {
   aCanchaUI,
   aEtiquetaDisciplina,
   aFranjaUI,
   etiquetaDisciplinas,
+  etiquetaEstadoCancha,
 } from "@/lib/adaptadores";
 import {
   mensajeDeError,
@@ -18,9 +24,16 @@ import {
   obtenerTurnosDeFecha,
 } from "@/lib/api";
 import type { DisciplinaApi } from "@/lib/api";
-import { obtenerFechaLocalHoy } from "@/lib/fechas";
+import {
+  formatearFechaAbreviada,
+  obtenerFechaLocalHoy,
+} from "@/lib/fechas";
 
 const CUALQUIER_HORARIO = "Cualquiera";
+const MAX_CHIPS = 4;
+
+const ESTILO_CONTROL =
+  "w-full rounded-xl border border-outline-variant/60 bg-surface-container-lowest px-3.5 py-2.5 text-sm font-medium text-on-surface outline-none transition focus:border-secondary focus:ring-4 focus:ring-secondary/10";
 
 export default function CanchasClient() {
   const searchParams = useSearchParams();
@@ -69,6 +82,9 @@ function ListadoCanchas({ disciplinaInicial }: { disciplinaInicial: string }) {
   ).sort();
   const horarioElegido = horarios.includes(horario) ? horario : CUALQUIER_HORARIO;
   const totalTurnos = Object.values(franjasPorCancha).flat().length;
+  const totalLibres = Object.values(franjasPorCancha)
+    .flat()
+    .filter((franja) => !franja.ocupada).length;
 
   useEffect(() => {
     let cancelado = false;
@@ -121,168 +137,288 @@ function ListadoCanchas({ disciplinaInicial }: { disciplinaInicial: string }) {
   function aplicarFiltros() {
     setDisciplinaAplicada(disciplinaEnEdicion);
     setFechaAplicada(fechaEnEdicion || obtenerFechaLocalHoy());
+    setHorario(CUALQUIER_HORARIO);
+  }
+
+  function limpiarFiltros() {
+    const hoy = obtenerFechaLocalHoy();
+    setDisciplinaEnEdicion("Todas");
+    setFechaEnEdicion(hoy);
+    setDisciplinaAplicada("Todas");
+    setFechaAplicada(hoy);
+    setHorario(CUALQUIER_HORARIO);
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Canchas y disponibilidad
-        </h1>
-        <p className="mt-2 text-sm text-slate-600 sm:text-base">
-          Elegí disciplina, fecha y horario para ver los turnos libres
-        </p>
+    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-secondary">Disponibilidad</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-[-0.04em] text-primary sm:text-4xl">
+            Canchas y turnos
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-on-surface-variant sm:text-base">
+            Elegí disciplina, fecha y horario. Los turnos verdes se pueden
+            reservar; el detalle muestra la grilla completa.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Insignia tono="verde">
+            <Icono nombre="calendario" className="h-3.5 w-3.5" />
+            {formatearFechaAbreviada(fechaAplicada)}
+          </Insignia>
+          {!cargando && !error ? (
+            <Insignia tono={totalLibres > 0 ? "verde" : "amarillo"}>
+              {totalLibres > 0
+                ? `${totalLibres} turnos libres`
+                : "Sin turnos libres"}
+            </Insignia>
+          ) : null}
+        </div>
       </div>
 
-      <div className="mb-8 flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm sm:p-5">
-        <div className="min-w-[160px] flex-1">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Disciplina
-          </label>
-          <select
-            value={disciplinaEnEdicion}
-            onChange={(e) => setDisciplinaEnEdicion(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
+      <div className="mt-7 rounded-3xl border border-outline-variant/40 bg-surface-container-lowest p-4 shadow-sm sm:p-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr_auto] lg:items-end">
+          <div className="min-w-0">
+            <label
+              htmlFor="filtro-disciplina"
+              className="mb-1.5 block text-sm font-semibold text-on-surface"
+            >
+              Disciplina
+            </label>
+            <select
+              id="filtro-disciplina"
+              value={disciplinaEnEdicion}
+              onChange={(e) => setDisciplinaEnEdicion(e.target.value)}
+              className={ESTILO_CONTROL}
+            >
+              <option value="Todas">Todas</option>
+              {disciplinas.map((d) => (
+                <option key={d.id} value={d.nombre}>
+                  {aEtiquetaDisciplina(d.nombre)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="min-w-0">
+            <label
+              htmlFor="filtro-fecha"
+              className="mb-1.5 block text-sm font-semibold text-on-surface"
+            >
+              Fecha
+            </label>
+            <input
+              id="filtro-fecha"
+              type="date"
+              value={fechaEnEdicion}
+              onChange={(e) => setFechaEnEdicion(e.target.value)}
+              className={ESTILO_CONTROL}
+            />
+          </div>
+
+          <div className="min-w-0">
+            <label
+              htmlFor="filtro-horario"
+              className="mb-1.5 block text-sm font-semibold text-on-surface"
+            >
+              Horario
+            </label>
+            <select
+              id="filtro-horario"
+              value={horarioElegido}
+              onChange={(e) => setHorario(e.target.value)}
+              className={ESTILO_CONTROL}
+            >
+              {[CUALQUIER_HORARIO, ...horarios].map((h) => (
+                <option key={h} value={h}>
+                  {h}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={aplicarFiltros}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary/90"
           >
-            <option value="Todas">Todas</option>
-            {disciplinas.map((d) => (
-              <option key={d.id} value={d.nombre}>
-                {aEtiquetaDisciplina(d.nombre)}
-              </option>
-            ))}
-          </select>
+            <Icono nombre="buscar" className="h-4 w-4" />
+            Buscar
+          </button>
         </div>
-
-        <div className="min-w-[160px] flex-1">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Fecha
-          </label>
-          <input
-            type="date"
-            value={fechaEnEdicion}
-            onChange={(e) => setFechaEnEdicion(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-          />
-        </div>
-
-        <div className="min-w-[160px] flex-1">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
-            Horario
-          </label>
-          <select
-            value={horarioElegido}
-            onChange={(e) => setHorario(e.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
-          >
-            {[CUALQUIER_HORARIO, ...horarios].map((h) => (
-              <option key={h} value={h}>
-                {h}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          type="button"
-          onClick={aplicarFiltros}
-          className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
-        >
-          Buscar
-        </button>
       </div>
 
       {cargando ? (
-        <div className="grid grid-cols-1 gap-6">
-          {[0, 1, 2].map((item) => (
+        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {[0, 1, 2, 3].map((item) => (
             <div
               key={item}
-              className="h-44 animate-pulse rounded-2xl border border-slate-200/80 bg-white"
-            />
+              className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest"
+            >
+              <Esqueleto className="aspect-[16/8] rounded-none" />
+              <div className="space-y-3 p-5">
+                <Esqueleto className="h-6 w-44" />
+                <Esqueleto className="h-4 w-32" />
+                <div className="flex gap-2">
+                  <Esqueleto className="h-7 w-24 rounded-full" />
+                  <Esqueleto className="h-7 w-28 rounded-full" />
+                </div>
+                <Esqueleto className="h-9 w-full rounded-full" />
+              </div>
+            </div>
           ))}
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-          <p className="text-sm text-red-600">{error}</p>
-          <button
-            type="button"
-            onClick={() => setIntento((n) => n + 1)}
-            className="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-          >
-            Reintentar
-          </button>
+        <div className="mt-8">
+          <EstadoError
+            mensaje={error}
+            onReintentar={() => setIntento((n) => n + 1)}
+          />
         </div>
       ) : canchas.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-sm text-slate-500">
-          No hay canchas para esta búsqueda.
-        </p>
+        <div className="mt-8">
+          <EstadoVacio
+            titulo="No hay canchas para esta búsqueda"
+            descripcion="Probá con otra disciplina o fecha. También podés volver a la disponibilidad de hoy."
+            accion={
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white"
+              >
+                Limpiar filtros
+              </button>
+            }
+            icono="buscar"
+          />
+        </div>
       ) : totalTurnos === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-sm text-slate-500">
-          No hay turnos cargados para esta fecha.
-        </p>
+        <div className="mt-8">
+          <EstadoVacio
+            titulo="No hay turnos cargados para esta fecha"
+            descripcion="Elegí otra fecha o volvé a la disponibilidad de hoy."
+            accion={
+              <button
+                type="button"
+                onClick={limpiarFiltros}
+                className="inline-flex rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white"
+              >
+                Volver a hoy
+              </button>
+            }
+            icono="calendario"
+          />
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6">
+        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
           {canchas.map((cancha) => {
             const franjas = franjasPorCancha[cancha.id] ?? [];
-            const franjasVisibles = franjas.filter(
+            const visibles = franjas.filter(
               (franja) =>
                 horarioElegido === CUALQUIER_HORARIO ||
                 horarioElegido === franja.hora,
             );
-            if (franjasVisibles.length === 0) return null;
+            const libres = visibles.filter((franja) => !franja.ocupada);
+            const disciplinaPrincipal =
+              cancha.disciplinas[0]?.nombre ?? "";
             return (
-              <div
+              <article
                 key={cancha.id}
-                className="flex flex-col gap-5 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition hover:shadow-md sm:flex-row sm:p-6"
+                className="group flex flex-col overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest transition hover:border-secondary/30 hover:shadow-lg hover:shadow-primary/5"
               >
-                <div className="flex h-28 w-full flex-shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-slate-50 sm:h-28 sm:w-36">
-                  <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                    {cancha.nombre.split(" ")[0]}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">
-                        {cancha.nombre}
+                <Link
+                  href={`/canchas/${cancha.id}`}
+                  className="relative block"
+                  aria-label={`Ver detalle de ${cancha.nombre}`}
+                >
+                  <ImagenDisciplina
+                    disciplina={disciplinaPrincipal}
+                    alt={`Cancha ${cancha.nombre}`}
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    className="aspect-[16/7]"
+                    imagenClassName="transition duration-500 group-hover:scale-[1.02]"
+                  />
+                  <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3">
+                    <Insignia tono="oscuro">
+                      <Icono nombre="cancha" className="h-3.5 w-3.5" />
+                      {etiquetaDisciplinas(cancha)}
+                    </Insignia>
+                    <Insignia
+                      tono={cancha.estado === "DISPONIBLE" ? "verde" : "amarillo"}
+                    >
+                      {etiquetaEstadoCancha(cancha.estado)}
+                    </Insignia>
+                  </div>
+                </Link>
+
+                <div className="flex flex-1 flex-col p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h2 className="text-xl font-bold tracking-tight text-primary">
+                        <Link
+                          href={`/canchas/${cancha.id}`}
+                          className="hover:text-secondary"
+                        >
+                          {cancha.nombre}
+                        </Link>
                       </h2>
-                      <p className="mt-0.5 text-sm text-slate-600">
-                        {etiquetaDisciplinas(cancha)}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-500">
-                        {cancha.ubicacion} · Capacidad {cancha.capacidad}
+                      <p className="mt-1 flex items-center gap-1.5 text-sm text-on-surface-variant">
+                        <Icono
+                          nombre="ubicacion"
+                          className="h-4 w-4 text-secondary"
+                        />
+                        {cancha.ubicacion}
                       </p>
                     </div>
+                    <Insignia>
+                      <Icono nombre="usuarios" className="h-3.5 w-3.5" />
+                      Capacidad {cancha.capacidad}
+                    </Insignia>
                   </div>
-                  <div className="mt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {franjasVisibles.map((franja) => {
-                        if (franja.ocupada) {
-                          return (
-                            <button
-                              key={franja.id}
-                              type="button"
-                              disabled
-                              className="cursor-not-allowed rounded-full border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-sm font-medium text-slate-400 line-through"
-                            >
-                              {franja.hora}
-                            </button>
-                          );
-                        }
 
-                        return (
+                  <div className="mt-4 flex-1">
+                    <p className="text-xs font-semibold text-on-surface-variant">
+                      Próximos turnos libres
+                    </p>
+                    {libres.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {libres.slice(0, MAX_CHIPS).map((franja) => (
                           <Link
                             key={franja.id}
                             href={`/canchas/${cancha.id}/reservar?fecha=${fechaAplicada}&hora=${franja.hora}&turnoId=${franja.id}`}
-                            className="rounded-full border border-emerald-200 bg-emerald-50 px-3.5 py-1.5 text-sm font-medium text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100"
+                            className="rounded-full border border-secondary/25 bg-secondary-soft px-3.5 py-1.5 text-sm font-semibold text-secondary transition hover:border-secondary/40 hover:bg-secondary-container/50"
                           >
                             {franja.hora}
                           </Link>
-                        );
-                      })}
-                    </div>
+                        ))}
+                        {libres.length > MAX_CHIPS ? (
+                          <Link
+                            href={`/canchas/${cancha.id}`}
+                            className="rounded-full border border-outline-variant/50 px-3.5 py-1.5 text-sm font-semibold text-on-surface-variant transition hover:bg-surface-container-low"
+                          >
+                            +{libres.length - MAX_CHIPS}
+                          </Link>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <p className="mt-2 rounded-xl bg-surface-container-low px-3 py-2 text-sm text-on-surface-variant">
+                        Sin turnos libres a esta hora. Mirá el detalle completo.
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-5 flex items-center justify-between gap-3 border-t border-outline-variant/30 pt-4">
+                    <Link
+                      href={`/canchas/${cancha.id}`}
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:text-secondary/80"
+                    >
+                      Ver detalle y todos los turnos
+                      <Icono nombre="flecha" className="h-4 w-4" />
+                    </Link>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>

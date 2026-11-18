@@ -58,9 +58,9 @@ La identidad actual se conserva: superficies claras, verde de club, tipografía 
 - Toasts consistentes, transiciones sutiles, `prefers-reduced-motion`, foco visible y contraste AA.
 - Header y footer completos, sin enlaces muertos.
 
-### Recursos visuales esperados
+### Recursos visuales
 
-La carpeta `frontend/public/img/` todavía no existe. Se esperan estos archivos locales, sin descargas ni hotlinking:
+La carpeta `frontend/public/img/` contiene los cinco archivos locales, sin descargas ni hotlinking:
 
 - `frontend/public/img/hero.webp`
 - `frontend/public/img/disciplinas/tenis.webp`
@@ -68,7 +68,7 @@ La carpeta `frontend/public/img/` todavía no existe. Se esperan estos archivos 
 - `frontend/public/img/disciplinas/padel.webp`
 - `frontend/public/img/disciplinas/default.webp`
 
-Hasta que existan, cada tarjeta usa el placeholder ilustrado; el informe final listará los archivos faltantes.
+Si un archivo falta o falla al cargar, cada tarjeta usa el placeholder ilustrado; el informe final lista cualquier faltante.
 
 ## Capabilities
 

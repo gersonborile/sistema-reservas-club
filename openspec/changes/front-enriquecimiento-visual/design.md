@@ -6,7 +6,7 @@ El frontend ya usa el backend real y la Home autenticada tiene una base visual m
 
 Restricciones que moldean la solución:
 
-- Las imágenes son locales. Existen `hero.webp`, `tenis.webp`, `futbol.webp` y `padel.webp`; `default.webp` falta.
+- Las imágenes son locales. Existen `hero.webp`, `tenis.webp`, `futbol.webp`, `padel.webp` y `default.webp`.
 - No se agregan dependencias.
 - No se toca backend, admin, CI ni Docker.
 - El frontend usa Next.js 16 con App Router, React 19, Tailwind 4 y TypeScript estricto.
@@ -65,7 +65,7 @@ En móvil se apila: texto, CTAs, imagen 4:3 y franja de disciplinas.
 
 `lib/imagenes.ts` normaliza con `NFD`, quita diacríticos, baja a minúsculas y colapsa espacios. Devuelve la ruta local de la disciplina o la ruta por defecto. No usa `fs` ni red.
 
-`ImagenDisciplina` es un componente cliente pequeño que envuelve `next/image` con `fill`, `sizes` y `alt`. Si la imagen falla, cambia a un placeholder SVG propio con gradiente y el ícono del deporte. Esto permite que la falta de `default.webp` no rompa la interfaz y que el informe final liste el archivo faltante. El hero usa `priority`; el resto queda diferido.
+`ImagenDisciplina` es un componente cliente pequeño que envuelve `next/image` con `fill`, `sizes` y `alt`. Si la imagen falla, cambia a un placeholder SVG propio con gradiente y el ícono del deporte. Esto deja una red de seguridad si un asset se mueve o falta en el futuro. El hero usa `priority`; el resto queda diferido.
 
 ### 4. Home pública: una carga tolerante por sección
 
@@ -107,7 +107,7 @@ Se mantiene `*:focus-visible` global y se amplía a `prefers-reduced-motion` en 
 
 ## Risks / Trade-offs
 
-- **`default.webp` faltante** → El componente cae a placeholder SVG; se informa el archivo faltante y no se genera ni descarga.
+- **Asset local faltante o corrupto** → El componente cae a placeholder SVG; no se genera ni descarga nada.
 - **Imágenes locales pesadas** → `next/image` con `sizes` y `priority` solo en hero; las tarjetas cargan diferido.
 - **Tres fetches en la Home** → `Promise.allSettled` aísla fallas; el costo es una carga ligeramente más compleja, aceptable para una landing.
 - **Duplicación de estilos con la Home autenticada** → Los tokens y componentes base se comparten; la Tanda B reutiliza en lugar de reescribir.
@@ -119,4 +119,4 @@ No hay migración de datos. El cambio es incremental y solo frontend. Rollback: 
 
 ## Open Questions
 
-Ninguna que cambie specs, enfoque o tareas. La única dependencia externa es la incorporación futura de `frontend/public/img/disciplinas/default.webp`; hasta entonces se usa el placeholder.
+Ninguna que cambie specs, enfoque o tareas. Los cinco assets locales están presentes; el placeholder queda como red de seguridad para futuros faltantes.

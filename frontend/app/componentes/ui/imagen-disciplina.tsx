@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Icono, deporteDeDisciplina } from "@/app/componentes/ui/iconos";
 import { imagenDisciplina } from "@/lib/imagenes";
@@ -27,12 +27,9 @@ export default function ImagenDisciplina({
   imagenClassName = "",
 }: Props) {
   const src = imagenDisciplina(disciplina);
-  const [fallo, setFallo] = useState(false);
+  const [srcFallida, setSrcFallida] = useState<string | null>(null);
+  const fallo = srcFallida === src;
   const etiqueta = disciplina.trim() || "disciplina del club";
-
-  useEffect(() => {
-    setFallo(false);
-  }, [src]);
 
   return (
     <div
@@ -47,7 +44,7 @@ export default function ImagenDisciplina({
           fill
           sizes={sizes}
           priority={priority}
-          onError={() => setFallo(true)}
+          onError={() => setSrcFallida(src)}
           className={`object-cover ${imagenClassName}`}
         />
       )}
