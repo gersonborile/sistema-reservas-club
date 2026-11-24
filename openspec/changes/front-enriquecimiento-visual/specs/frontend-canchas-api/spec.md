@@ -40,7 +40,7 @@ El listado SHALL mostrar un skeleton mientras carga, un estado vacío con ilustr
 
 ### Requirement: Detalle público de cancha
 
-El frontend SHALL ofrecer una ruta pública `/canchas/:id` que obtenga la cancha con `GET /canchas/:id` y sus turnos con `GET /turnos?cancha_id=&fecha=`. El detalle SHALL mostrar una imagen grande, nombre, ubicación, capacidad, estado y disciplinas con su duración y reglas. SHALL mostrar un selector de 7 días y una grilla de turnos con libres seleccionables y ocupados deshabilitados. Al elegir un turno libre SHALL continuar el flujo de reserva existente, pasando por login con retorno si no hay sesión.
+El frontend SHALL ofrecer una ruta pública `/canchas/:id` que cargue la cancha con `GET /canchas/:id` y sus turnos con `GET /turnos?cancha_id=&fecha=`, mostrando imagen grande, datos de la cancha y disciplinas, un selector de 7 días y una grilla de turnos accionables hacia el flujo de reserva.
 
 #### Scenario: Detalle con datos reales
 - **WHEN** el socio abre `/canchas/:id`
