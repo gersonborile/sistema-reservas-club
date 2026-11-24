@@ -71,7 +71,7 @@ export function FormularioLogin({ redirigir }: { redirigir?: string }) {
       <button
         type="submit"
         disabled={enviando}
-        className="mt-2 w-full rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-secondary px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-secondary/90 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {enviando ? "Ingresando…" : "Iniciar sesión"}
       </button>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { IsotipoMatchPoint } from "@/app/componentes/ui/marca";
 import { borrarSesion } from "@/lib/sesion";
 import { useSesion } from "@/lib/use-sesion";
 
@@ -49,9 +50,7 @@ export default function LayoutPanelAdmin({
     <div className="min-h-screen flex bg-slate-50 text-slate-900">
       <aside className="flex w-64 shrink-0 flex-col border-r border-slate-200/70 bg-white">
         <div className="flex items-center gap-2.5 border-b border-slate-200/70 px-5 py-4">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-sm font-semibold text-white">
-            MP
-          </div>
+          <IsotipoMatchPoint className="h-9 w-9 shrink-0 text-slate-900" />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold tracking-tight text-slate-900">
               MatchPoint

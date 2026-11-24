@@ -141,22 +141,22 @@ export default function DetalleCanchaClient({
         : "rojo";
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
+    <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-8 sm:py-16">
       <Link
         href="/canchas"
-        className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition hover:text-secondary"
+        className="inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition hover:text-secondary"
       >
         <Icono nombre="flecha" className="h-4 w-4 rotate-180" />
         Volver a las canchas
       </Link>
 
-      <div className="mt-6 grid grid-cols-1 gap-7 lg:grid-cols-[1.12fr_0.88fr] lg:gap-10">
+      <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[1.12fr_0.88fr] lg:gap-14">
         <div>
           <ImagenDisciplina
             disciplina={disciplinaPrincipal}
             alt={`Cancha ${cancha.nombre}`}
             sizes="(min-width: 1024px) 58vw, 100vw"
-            className="aspect-[16/10] rounded-[2rem] border border-outline-variant/30"
+            className="aspect-[16/11] rounded-[2rem] border border-outline-variant/40"
           />
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <DatoCancha
@@ -187,27 +187,24 @@ export default function DetalleCanchaClient({
               Turnos de una hora
             </Insignia>
           </div>
-          <h1 className="mt-4 text-4xl font-extrabold leading-[1.05] tracking-[-0.045em] text-primary sm:text-5xl">
+          <h1 className="mt-5 font-display text-5xl leading-[1.05] tracking-tight text-primary sm:text-6xl">
             {cancha.nombre}
           </h1>
-          <p className="mt-3 flex items-center gap-2 text-sm text-on-surface-variant sm:text-base">
+          <p className="mt-4 flex items-center gap-2 text-sm text-on-surface-variant sm:text-base">
             <Icono nombre="ubicacion" className="h-4 w-4 text-secondary" />
             {cancha.ubicacion}
           </p>
 
-          <div className="mt-6 space-y-3">
+          <div className="mt-8 divide-y divide-outline-variant/60 border-y border-outline-variant/60">
             {cancha.disciplinas.length > 0 ? (
               cancha.disciplinas.map((disciplina) => {
                 const duracion = formatearDuracion(
                   disciplina.duracionTipicaMinutos,
                 );
                 return (
-                  <div
-                    key={disciplina.id}
-                    className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4"
-                  >
+                  <div key={disciplina.id} className="py-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <h2 className="font-bold text-primary">
+                      <h2 className="font-display text-2xl leading-tight text-primary">
                         {aEtiquetaDisciplina(disciplina.nombre)}
                       </h2>
                       {duracion ? (
@@ -222,24 +219,27 @@ export default function DetalleCanchaClient({
                 );
               })
             ) : (
-              <p className="rounded-2xl border border-dashed border-outline-variant/50 p-4 text-sm text-on-surface-variant">
+              <p className="py-4 text-sm text-on-surface-variant">
                 Esta cancha no tiene disciplinas cargadas.
               </p>
             )}
           </div>
 
-          <div className="mt-6 rounded-2xl bg-secondary-soft p-4 text-sm leading-relaxed text-secondary">
+          <div className="mt-5 border-l-2 border-secondary pl-4 text-sm leading-relaxed text-secondary">
             Elegí un turno libre en la grilla. Si no tenés sesión, te pedimos
             iniciar sesión y volvés directo a la confirmación.
           </div>
         </div>
       </div>
 
-      <section className="mt-12">
+      <section className="mt-16">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-sm font-semibold text-secondary">Fecha</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-[-0.03em] text-primary sm:text-3xl">
+            <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+              <Icono nombre="calendario" className="h-4 w-4" />
+              Fecha
+            </p>
+            <h2 className="mt-2 font-display text-4xl leading-tight text-primary sm:text-5xl">
               Elegí el día
             </h2>
           </div>
@@ -249,7 +249,7 @@ export default function DetalleCanchaClient({
         </div>
 
         <div
-          className="mt-4 flex gap-2 overflow-x-auto pb-2"
+          className="mt-5 flex gap-2 overflow-x-auto pb-2 sin-scrollbar"
           role="group"
           aria-label="Selector de fecha"
         >
@@ -262,22 +262,22 @@ export default function DetalleCanchaClient({
                 onClick={() => setFecha(dia.fecha)}
                 aria-pressed={activo}
                 aria-label={`${dia.etiqueta} ${dia.numero}`}
-                className={`flex min-w-[72px] flex-col items-center rounded-2xl border px-3 py-3 text-center transition ${
+                className={`flex min-w-[76px] flex-col items-center rounded-2xl border px-3 py-3 text-center transition ${
                   activo
-                    ? "border-secondary bg-secondary text-white shadow-sm"
-                    : "border-outline-variant/40 bg-surface-container-lowest text-on-surface hover:border-secondary/40 hover:bg-secondary-soft"
+                    ? "border-primary bg-primary text-white"
+                    : "border-outline-variant/60 bg-surface-container-lowest text-on-surface hover:border-secondary/40 hover:bg-secondary-soft"
                 }`}
               >
                 <span
-                  className={`text-xs font-semibold ${activo ? "text-white/70" : "text-on-surface-variant"}`}
+                  className={`text-[0.65rem] font-medium ${activo ? "text-white/55" : "text-on-surface-variant"}`}
                 >
                   {dia.dia}
                 </span>
-                <span className="mt-0.5 text-xl font-extrabold">
+                <span className="mt-1 font-display text-2xl leading-none">
                   {dia.numero}
                 </span>
                 <span
-                  className={`mt-0.5 text-[11px] font-semibold ${activo ? "text-secondary-container" : "text-secondary"}`}
+                  className={`mt-1 text-[0.65rem] font-medium ${activo ? "text-secondary-container" : "text-secondary"}`}
                 >
                   {dia.etiqueta === "Hoy" || dia.etiqueta === "Mañana"
                     ? dia.etiqueta
@@ -289,11 +289,14 @@ export default function DetalleCanchaClient({
         </div>
       </section>
 
-      <section className="mt-8">
+      <section className="mt-12">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-sm font-semibold text-secondary">Turnos</p>
-            <h2 className="mt-1 text-2xl font-extrabold tracking-[-0.03em] text-primary sm:text-3xl">
+            <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+              <Icono nombre="reloj" className="h-4 w-4" />
+              Turnos
+            </p>
+            <h2 className="mt-2 font-display text-4xl leading-tight text-primary sm:text-5xl">
               {cargandoTurnos
                 ? "Buscando horarios"
                 : `${turnos.filter((turno) => turno.estado === "libre").length} libres`}
@@ -305,20 +308,20 @@ export default function DetalleCanchaClient({
         </div>
 
         {cargandoTurnos ? (
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {[0, 1, 2, 3, 4, 5, 6, 7].map((item) => (
-              <Esqueleto key={item} className="h-16 rounded-2xl" />
+              <Esqueleto key={item} className="h-20 rounded-2xl" />
             ))}
           </div>
         ) : errorTurnos ? (
-          <div className="mt-5">
+          <div className="mt-6">
             <EstadoError
               mensaje={errorTurnos}
               onReintentar={() => setIntentoTurnos((n) => n + 1)}
             />
           </div>
         ) : turnos.length === 0 ? (
-          <div className="mt-5">
+          <div className="mt-6">
             <EstadoVacio
               titulo="No hay turnos para esta fecha"
               descripcion="Elegí otro día en la franja de fechas para ver la disponibilidad."
@@ -326,7 +329,7 @@ export default function DetalleCanchaClient({
             />
           </div>
         ) : (
-          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {turnos.map((turno) => {
               if (turno.estado === "ocupado") {
                 return (
@@ -335,12 +338,14 @@ export default function DetalleCanchaClient({
                     type="button"
                     disabled
                     title="Turno ocupado"
-                    className="flex h-16 cursor-not-allowed flex-col items-center justify-center rounded-2xl border border-outline-variant/30 bg-surface-container text-on-surface-variant/60"
+                    className="flex h-20 cursor-not-allowed flex-col items-center justify-center rounded-2xl border border-outline-variant/50 bg-surface-container text-on-surface-variant/55"
                   >
-                    <span className="text-sm font-bold line-through">
+                    <span className="font-display text-2xl leading-none line-through">
                       {turno.horaInicio.slice(0, 5)}
                     </span>
-                    <span className="text-[11px]">Ocupado</span>
+                    <span className="mt-1 text-[0.65rem] font-medium">
+                      Ocupado
+                    </span>
                   </button>
                 );
               }
@@ -349,12 +354,14 @@ export default function DetalleCanchaClient({
                 <Link
                   key={turno.id}
                   href={`/canchas/${cancha.id}/reservar?fecha=${fecha}&hora=${turno.horaInicio}&turnoId=${turno.id}`}
-                  className="flex h-16 flex-col items-center justify-center rounded-2xl border border-secondary/25 bg-secondary-soft text-secondary transition hover:border-secondary/50 hover:bg-secondary-container/50"
+                  className="flex h-20 flex-col items-center justify-center rounded-2xl border border-secondary/25 bg-secondary-soft text-secondary transition hover:border-secondary/60 hover:bg-secondary-container"
                 >
-                  <span className="text-sm font-bold">
+                  <span className="font-display text-2xl leading-none">
                     {turno.horaInicio.slice(0, 5)}
                   </span>
-                  <span className="text-[11px] font-semibold">Libre</span>
+                  <span className="mt-1 text-[0.65rem] font-medium">
+                    Libre
+                  </span>
                 </Link>
               );
             })}
@@ -375,33 +382,33 @@ function DatoCancha({
   valor: string;
 }) {
   return (
-    <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-3">
-      <span className="flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant">
+    <div className="rounded-2xl border border-outline-variant/50 bg-surface-container-lowest p-3.5">
+      <span className="flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
         <Icono nombre={icono} className="h-3.5 w-3.5 text-secondary" />
         {etiqueta}
       </span>
-      <p className="mt-1 truncate text-sm font-bold text-primary">{valor}</p>
+      <p className="mt-1 truncate text-sm font-semibold text-primary">{valor}</p>
     </div>
   );
 }
 
 function CargandoDetalle() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="mx-auto max-w-[1400px] px-4 py-10 sm:px-8 sm:py-16">
       <Esqueleto className="h-4 w-36" />
-      <div className="mt-6 grid grid-cols-1 gap-7 lg:grid-cols-[1.12fr_0.88fr]">
-        <Esqueleto className="aspect-[16/10] rounded-[2rem]" />
+      <div className="mt-7 grid grid-cols-1 gap-8 lg:grid-cols-[1.12fr_0.88fr]">
+        <Esqueleto className="aspect-[16/11] rounded-[2rem]" />
         <div className="space-y-4">
           <Esqueleto className="h-7 w-32 rounded-full" />
-          <Esqueleto className="h-12 w-4/5" />
+          <Esqueleto className="h-14 w-4/5" />
           <Esqueleto className="h-5 w-1/2" />
           <Esqueleto className="h-28 rounded-2xl" />
         </div>
       </div>
-      <Esqueleto className="mt-12 h-8 w-48" />
-      <div className="mt-4 flex gap-2">
+      <Esqueleto className="mt-16 h-10 w-48" />
+      <div className="mt-5 flex gap-2">
         {[0, 1, 2, 3, 4, 5, 6].map((item) => (
-          <Esqueleto key={item} className="h-20 w-[72px] rounded-2xl" />
+          <Esqueleto key={item} className="h-20 w-[76px] rounded-2xl" />
         ))}
       </div>
     </div>

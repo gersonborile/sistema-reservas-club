@@ -24,11 +24,13 @@ import {
   contarReservasDeHoy,
   disciplinaIdsParaEditar,
   filtrarReservasPorEstado,
+  limitarCantidad,
   ordenarReservas,
   obtenerProximaReserva,
   proximoTurnoLibre,
   puedeCancelarReserva,
   textoItemsAlquiler,
+  totalAlquilerPrevisto,
   turnosLibresDesde,
   validarDatosTurno,
   validarGeneracion,
@@ -691,5 +693,44 @@ describe("proximoTurnoLibre", () => {
 
   it("devuelve null sin turnos libres", () => {
     expect(proximoTurnoLibre([{ ...TURNO_BACKEND, disponible: false }])).toBeNull();
+  });
+});
+
+describe("limitarCantidad", () => {
+  it("limita al stock y al mínimo de 1", () => {
+    expect(limitarCantidad(0, 4)).toBe(1);
+    expect(limitarCantidad(2.9, 4)).toBe(2);
+    expect(limitarCantidad(9, 4)).toBe(4);
+  });
+
+  it("devuelve 0 sin stock y 1 ante un valor inválido", () => {
+    expect(limitarCantidad(2, 0)).toBe(0);
+    expect(limitarCantidad(Number.NaN, 3)).toBe(1);
+  });
+});
+
+describe("totalAlquilerPrevisto", () => {
+  it("suma cantidad por precio unitario del catálogo", () => {
+    expect(
+      totalAlquilerPrevisto(
+        [
+          { equipamientoId: "e-1", cantidad: 2 },
+          { equipamientoId: "e-2", cantidad: 1 },
+        ],
+        [
+          { id: "e-1", precioUnitario: 1500 },
+          { id: "e-2", precioUnitario: 800 },
+        ],
+      ),
+    ).toBe(3800);
+  });
+
+  it("ignora ítems que no están en el catálogo", () => {
+    expect(
+      totalAlquilerPrevisto(
+        [{ equipamientoId: "e-9", cantidad: 3 }],
+        [{ id: "e-1", precioUnitario: 100 }],
+      ),
+    ).toBe(0);
   });
 });

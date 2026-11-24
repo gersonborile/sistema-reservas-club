@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -8,10 +8,9 @@ import ImagenDisciplina from "@/app/componentes/ui/imagen-disciplina";
 import { Icono } from "@/app/componentes/ui/iconos";
 import { Insignia } from "@/app/componentes/ui/insignia";
 import { Esqueleto } from "@/app/componentes/ui/esqueleto";
+import Marca from "@/app/componentes/ui/marca";
 import { EstadoError, EstadoVacio } from "@/app/componentes/ui/estado";
-import type {
-  DisciplinaApi,
-} from "@/lib/api";
+import type { DisciplinaApi } from "@/lib/api";
 import {
   mensajeDeError,
   obtenerCanchas,
@@ -29,7 +28,6 @@ import {
 } from "@/lib/adaptadores";
 import { APERTURA, CIERRE } from "@/lib/franjas";
 import { formatearDuracion, formatearMoneda } from "@/lib/formato";
-import { IMAGEN_HERO } from "@/lib/imagenes";
 
 const PASOS = [
   {
@@ -106,6 +104,53 @@ export default function Landing() {
     equipamiento: null,
   });
   const [intento, setIntento] = useState(0);
+  const [headerDesplazado, setHeaderDesplazado] = useState(false);
+
+  useEffect(() => {
+    function alDesplazar() {
+      setHeaderDesplazado(window.scrollY > 40);
+    }
+
+    window.addEventListener("scroll", alDesplazar, { passive: true });
+    alDesplazar();
+
+    return () => window.removeEventListener("scroll", alDesplazar);
+  }, []);
+
+  useEffect(() => {
+    const elementos = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-animar]"),
+    );
+
+    if (elementos.length === 0) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      elementos.forEach((elemento) =>
+        elemento.classList.add("esta-visible"),
+      );
+      return;
+    }
+
+    const observador = new IntersectionObserver(
+      (entradas, observer) => {
+        entradas.forEach((entrada) => {
+          if (!entrada.isIntersecting) return;
+
+          entrada.target.classList.add("esta-visible");
+          observer.unobserve(entrada.target);
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" },
+    );
+
+    elementos.forEach((elemento) => {
+      if (!elemento.classList.contains("esta-visible")) {
+        observador.observe(elemento);
+      }
+    });
+
+    return () => observador.disconnect();
+  }, [contenido]);
 
   useEffect(() => {
     let cancelado = false;
@@ -166,23 +211,22 @@ export default function Landing() {
 
   return (
     <div className="flex min-h-screen flex-col bg-surface text-on-surface">
-      <header className="sticky top-0 z-40 border-b border-outline-variant/30 bg-surface-container-lowest/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-secondary-container">
-              CD
-            </div>
-            <span className="hidden truncate text-sm font-bold tracking-tight text-primary sm:inline">
-              Club Deportivo
-            </span>
-          </Link>
+      <header
+        className={`fixed inset-x-0 top-0 z-50 border-b transition-all duration-300 ${
+          headerDesplazado
+            ? "border-white/10 bg-primary/45 backdrop-blur-md"
+            : "border-transparent bg-transparent"
+        }`}
+      >
+        <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-8">
+          <Marca tono="claro" />
 
-          <nav className="hidden items-center gap-6 lg:flex">
+          <nav className="hidden items-center gap-7 lg:flex">
             {LINKS_SECCION.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="text-sm font-semibold text-on-surface-variant transition hover:text-secondary"
+                className="text-sm font-medium text-white/75 transition hover:text-white"
               >
                 {link.texto}
               </a>
@@ -192,14 +236,15 @@ export default function Landing() {
           <div className="flex flex-shrink-0 items-center gap-2">
             <Link
               href="/login"
-              className="rounded-full border border-outline-variant/50 bg-surface-container-lowest px-3 py-1.5 text-xs font-semibold text-on-surface transition hover:bg-surface-container-low sm:text-sm"
+              className="hidden rounded-full px-4 py-2 text-sm font-medium text-white/75 transition hover:bg-white/10 hover:text-white sm:inline-flex"
             >
               Iniciar sesión
             </Link>
             <Link
               href="/registro"
-              className="rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary/90 sm:px-4 sm:text-sm"
+              className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-white sm:px-5"
             >
+              <span className="h-1.5 w-1.5 rounded-full bg-primary/60" />
               Registrate
             </Link>
           </div>
@@ -207,90 +252,56 @@ export default function Landing() {
       </header>
 
       <main className="flex-1">
-        <section className="border-b border-outline-variant/30 bg-surface-container-lowest">
-          <div className="mx-auto grid max-w-7xl grid-cols-1 items-center gap-10 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-[1.02fr_0.98fr] lg:gap-12 lg:py-20">
-            <div>
-              <p className="inline-flex items-center gap-2 rounded-full border border-secondary/20 bg-secondary-soft px-3 py-1.5 text-xs font-semibold text-secondary">
-                <span className="h-1.5 w-1.5 rounded-full bg-secondary" />
-                Turnos reales, sin vueltas
-              </p>
-              <h1 className="mt-5 max-w-xl text-4xl font-extrabold leading-[1.05] tracking-[-0.045em] text-primary sm:text-5xl lg:text-6xl">
-                Tu próximo partido empieza en el club.
-              </h1>
-              <p className="mt-5 max-w-lg text-base leading-relaxed text-on-surface-variant sm:text-lg">
-                Elegí disciplina, fecha y horario. Confirmá tu turno y sumá
-                equipamiento en la misma reserva.
-              </p>
-              <div className="mt-7 flex flex-wrap gap-3">
-                <Link
-                  href="/canchas"
-                  className="inline-flex items-center gap-2 rounded-full bg-secondary px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-secondary/90"
-                >
-                  Ver disponibilidad
-                  <Icono nombre="flecha" className="h-4 w-4" />
-                </Link>
-                <a
-                  href="#como-funciona"
-                  className="inline-flex items-center gap-2 rounded-full border border-outline-variant/60 bg-surface-container-lowest px-5 py-3 text-sm font-semibold text-on-surface transition hover:bg-surface-container-low"
-                >
-                  Cómo funciona
-                </a>
-              </div>
-              <p className="mt-5 flex items-center gap-2 text-sm text-on-surface-variant">
-                <Icono nombre="reloj" className="h-4 w-4 text-secondary" />
-                Todos los días de {APERTURA} a {CIERRE} hs
-              </p>
+        <section className="relative flex min-h-[90svh] items-center overflow-hidden bg-primary text-white sm:min-h-[92svh]">
+          <Image
+            src="/img/hero.webp"
+            alt="Cancha de tenis del club"
+            fill
+            priority
+            sizes="100vw"
+            className="pointer-events-none object-cover object-center"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,24,16,0.72)_0%,rgba(14,24,16,0.88)_100%)]" />
+
+          <div className="relative z-10 mx-auto flex w-full max-w-[1000px] flex-col items-center justify-center px-4 pb-24 pt-32 text-center sm:px-8 lg:pb-32 lg:pt-36">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3.5 py-1.5 text-xs font-medium text-white/85 backdrop-blur-sm transition duration-700 animate-in fade-in slide-in-from-bottom-3">
+              <span className="pulso-disponible h-1.5 w-1.5 rounded-full bg-secondary-container" />
+              Turnos reales, sin vueltas
+            </p>
+
+            <h1 className="mt-7 max-w-3xl font-display text-6xl leading-[1.05] tracking-tight text-white transition duration-700 delay-100 animate-in fade-in slide-in-from-bottom-4 sm:text-7xl xl:text-[6.2rem]">
+              Tu próximo partido empieza en{" "}
+              <em className="italic text-secondary-container">MatchPoint.</em>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/80 transition duration-700 delay-150 animate-in fade-in slide-in-from-bottom-4 sm:text-lg">
+              Elegí disciplina, fecha y horario. Confirmá tu turno y sumá
+              equipamiento en la misma reserva.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 transition duration-700 delay-200 animate-in fade-in slide-in-from-bottom-4">
+              <Link
+                href="/canchas"
+                className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-6 py-3 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:bg-white"
+              >
+                Ver disponibilidad
+                <Icono nombre="flecha" className="h-4 w-4" />
+              </Link>
+              <a
+                href="#como-funciona"
+                className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/30 px-5 py-3 text-sm font-medium text-white backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Cómo funciona
+              </a>
             </div>
 
-            <div className="relative">
-              <div className="relative aspect-[5/4] overflow-hidden rounded-[2rem] border border-outline-variant/30 bg-surface-container shadow-xl shadow-primary/10 sm:aspect-[4/3]">
-                <Image
-                  src={IMAGEN_HERO}
-                  alt="Cancha deportiva del club"
-                  fill
-                  priority
-                  sizes="(min-width: 1024px) 48vw, 100vw"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,28,28,0.08)_20%,rgba(26,28,28,0.82)_100%)]" />
-                <div className="absolute inset-x-4 bottom-4 rounded-2xl border border-white/20 bg-primary/65 px-4 py-3 text-white backdrop-blur-md sm:inset-x-5 sm:bottom-5">
-                  <p className="text-xs font-semibold text-secondary-container">
-                    Disciplinas del club
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {cargando ? (
-                      <span className="h-6 w-40 animate-pulse rounded-full bg-white/20" />
-                    ) : disciplinas.length > 0 ? (
-                      disciplinas.slice(0, 3).map((disciplina) => {
-                        const duracion = formatearDuracion(
-                          disciplina.duracionTipicaMinutos,
-                        );
-                        return (
-                          <span
-                            key={disciplina.id}
-                            className="rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-xs font-semibold"
-                          >
-                            {aEtiquetaDisciplina(disciplina.nombre)}
-                            {duracion ? ` · ${duracion}` : ""}
-                          </span>
-                        );
-                      })
-                    ) : (
-                      <span className="text-xs text-white/70">
-                        Consultá la disponibilidad del club.
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <div className="absolute -left-3 top-5 hidden rotate-[-4deg] rounded-xl border border-secondary/20 bg-secondary-container px-3 py-2 text-xs font-bold text-primary shadow-md sm:block">
-                {cargando
-                  ? "Cargando canchas"
-                  : canchas.length > 0
-                    ? `${canchas.length} canchas para reservar`
-                    : "Disponibilidad online"}
-              </div>
-            </div>
+            <p className="mt-6 flex items-center justify-center gap-2 text-sm text-white/75 transition duration-700 delay-300 animate-in fade-in">
+              <Icono
+                nombre="reloj"
+                className="h-4 w-4 text-secondary-container"
+              />
+              Todos los días de {APERTURA} a {CIERRE} hs
+            </p>
           </div>
         </section>
 
@@ -298,13 +309,14 @@ export default function Landing() {
           id="disciplinas"
           className="scroll-mt-24 border-b border-outline-variant/30"
         >
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
+          <div className="mx-auto max-w-[1400px] px-4 py-20 sm:px-8 sm:py-24 md:py-28">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-secondary">
+              <div data-animar>
+                <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+                  <Icono nombre="cancha" className="h-4 w-4" />
                   Disciplinas
                 </p>
-                <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-primary sm:text-4xl">
+                <h2 className="mt-1 font-display text-5xl leading-[1.05] tracking-tight text-primary sm:text-6xl">
                   Elegí cómo querés jugar
                 </h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-on-surface-variant sm:text-base">
@@ -325,7 +337,10 @@ export default function Landing() {
             {cargando ? (
               <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {[0, 1, 2].map((item) => (
-                  <div key={item} className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest">
+                  <div
+                    key={item}
+                    className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest"
+                  >
                     <Esqueleto className="aspect-[4/3] rounded-none" />
                     <div className="space-y-3 p-5">
                       <Esqueleto className="h-6 w-28" />
@@ -360,13 +375,15 @@ export default function Landing() {
               </div>
             ) : (
               <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {disciplinas.map((disciplina) => {
+                {disciplinas.map((disciplina, indice) => {
                   const duracion = formatearDuracion(
                     disciplina.duracionTipicaMinutos,
                   );
                   return (
                     <article
                       key={disciplina.id}
+                      data-animar
+                      style={{ transitionDelay: `${Math.min(indice, 6) * 70}ms` }}
                       className="group overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest transition hover:-translate-y-0.5 hover:border-secondary/30 hover:shadow-lg hover:shadow-primary/5"
                     >
                       <div className="relative">
@@ -384,7 +401,7 @@ export default function Landing() {
                         </div>
                       </div>
                       <div className="p-5">
-                        <h3 className="text-xl font-bold tracking-tight text-primary">
+                        <h3 className="font-display text-3xl leading-tight text-primary">
                           {aEtiquetaDisciplina(disciplina.nombre)}
                         </h3>
                         <p className="mt-2 line-clamp-2 min-h-10 text-sm leading-relaxed text-on-surface-variant">
@@ -411,11 +428,14 @@ export default function Landing() {
           id="canchas"
           className="scroll-mt-24 border-b border-outline-variant/30 bg-surface-container-low"
         >
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
+          <div className="mx-auto max-w-[1400px] px-4 py-20 sm:px-8 sm:py-24 md:py-28">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-secondary">Canchas</p>
-                <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-primary sm:text-4xl">
+              <div data-animar>
+                <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+                  <Icono nombre="ubicacion" className="h-4 w-4" />
+                  Canchas
+                </p>
+                <h2 className="mt-1 font-display text-5xl leading-[1.05] tracking-tight text-primary sm:text-6xl">
                   El club, listo para jugar
                 </h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-on-surface-variant sm:text-base">
@@ -434,7 +454,10 @@ export default function Landing() {
             {cargando ? (
               <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
                 {[0, 1, 2, 3].map((item) => (
-                  <div key={item} className="grid overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest sm:grid-cols-[170px_1fr]">
+                  <div
+                    key={item}
+                    className="grid overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest sm:grid-cols-[170px_1fr]"
+                  >
                     <Esqueleto className="h-40 rounded-none sm:h-full" />
                     <div className="space-y-3 p-5">
                       <Esqueleto className="h-6 w-40" />
@@ -469,12 +492,14 @@ export default function Landing() {
               </div>
             ) : (
               <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
-                {canchas.map((cancha) => {
+                {canchas.map((cancha, indice) => {
                   const disciplinaPrincipal =
                     cancha.disciplinas[0]?.nombre ?? "";
                   return (
                     <article
                       key={cancha.id}
+                      data-animar
+                      style={{ transitionDelay: `${indice * 70}ms` }}
                       className="group grid overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest transition hover:border-secondary/30 hover:shadow-lg hover:shadow-primary/5 sm:grid-cols-[180px_1fr]"
                     >
                       <ImagenDisciplina
@@ -486,8 +511,11 @@ export default function Landing() {
                       />
                       <div className="min-w-0 p-5">
                         <div className="flex flex-wrap items-start justify-between gap-2">
-                          <h3 className="text-lg font-bold tracking-tight text-primary">
-                            <Link href={`/canchas/${cancha.id}`} className="hover:text-secondary">
+                          <h3 className="font-display text-2xl leading-tight text-primary">
+                            <Link
+                              href={`/canchas/${cancha.id}`}
+                              className="hover:text-secondary"
+                            >
                               {cancha.nombre}
                             </Link>
                           </h3>
@@ -496,7 +524,10 @@ export default function Landing() {
                           </Insignia>
                         </div>
                         <p className="mt-1 flex items-center gap-1.5 text-sm text-on-surface-variant">
-                          <Icono nombre="ubicacion" className="h-4 w-4 text-secondary" />
+                          <Icono
+                            nombre="ubicacion"
+                            className="h-4 w-4 text-secondary"
+                          />
                           {cancha.ubicacion}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -526,10 +557,13 @@ export default function Landing() {
         </section>
 
         <section className="border-b border-outline-variant/30 bg-surface-container-lowest">
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-8 px-4 py-14 sm:px-6 md:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
-            <div>
-              <p className="text-sm font-semibold text-secondary">Equipamiento</p>
-              <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-primary sm:text-4xl">
+          <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-8 px-4 py-20 sm:px-8 sm:py-24 md:py-28 lg:grid-cols-[0.9fr_1.1fr] lg:items-start lg:gap-14">
+            <div data-animar>
+              <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+                <Icono nombre="equipamiento" className="h-4 w-4" />
+                Equipamiento
+              </p>
+              <h2 className="mt-1 font-display text-5xl leading-[1.05] tracking-tight text-primary sm:text-6xl">
                 Alquilá lo que te falta
               </h2>
               <p className="mt-3 max-w-md text-sm leading-relaxed text-on-surface-variant sm:text-base">
@@ -572,9 +606,11 @@ export default function Landing() {
               />
             ) : (
               <ul className="space-y-3">
-                {equipamiento.map((item) => (
+                {equipamiento.map((item, indice) => (
                   <li
                     key={item.id}
+                    data-animar
+                    style={{ transitionDelay: `${indice * 70}ms` }}
                     className="flex flex-col gap-3 rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="min-w-0">
@@ -585,7 +621,7 @@ export default function Landing() {
                       </p>
                     </div>
                     <div className="flex items-baseline gap-1.5 sm:text-right">
-                      <span className="text-lg font-extrabold text-secondary">
+                      <span className="text-lg font-semibold text-secondary">
                         {formatearMoneda(item.precioUnitario)}
                       </span>
                       <span className="text-xs text-on-surface-variant">
@@ -603,15 +639,22 @@ export default function Landing() {
           id="como-funciona"
           className="scroll-mt-24 border-b border-outline-variant/30 bg-surface-container-low"
         >
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
-            <p className="text-sm font-semibold text-secondary">Cómo funciona</p>
-            <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-primary sm:text-4xl">
-              De la idea al turno en tres pasos
-            </h2>
+          <div className="mx-auto max-w-[1400px] px-4 py-20 sm:px-8 sm:py-24 md:py-28">
+            <div data-animar>
+              <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+                <Icono nombre="rayo" className="h-4 w-4" />
+                Cómo funciona
+              </p>
+              <h2 className="mt-1 font-display text-5xl leading-[1.05] tracking-tight text-primary sm:text-6xl">
+                De la idea al turno en tres pasos
+              </h2>
+            </div>
             <div className="mt-9 grid grid-cols-1 gap-5 md:grid-cols-3">
               {PASOS.map((paso, indice) => (
                 <article
                   key={paso.titulo}
+                  data-animar
+                  style={{ transitionDelay: `${indice * 90}ms` }}
                   className="relative rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-6"
                 >
                   <div className="flex items-center gap-3">
@@ -622,7 +665,7 @@ export default function Landing() {
                       Paso {indice + 1}
                     </span>
                   </div>
-                  <h3 className="mt-5 text-lg font-bold tracking-tight text-primary">
+                  <h3 className="mt-5 font-display text-2xl leading-tight text-primary">
                     {paso.titulo}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">
@@ -635,13 +678,14 @@ export default function Landing() {
         </section>
 
         <section className="border-b border-outline-variant/30 bg-surface-container-lowest">
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 md:py-20">
+          <div className="mx-auto max-w-[1400px] px-4 py-20 sm:px-8 sm:py-24 md:py-28">
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14">
-              <div>
-                <p className="text-sm font-semibold text-secondary">
+              <div data-animar>
+                <p className="flex items-center gap-2 text-sm font-medium text-secondary">
+                  <Icono nombre="informacion" className="h-4 w-4" />
                   Preguntas frecuentes
                 </p>
-                <h2 className="mt-1 text-3xl font-extrabold tracking-[-0.035em] text-primary sm:text-4xl">
+                <h2 className="mt-1 font-display text-5xl leading-[1.05] tracking-tight text-primary sm:text-6xl">
                   Lo que necesitás saber
                 </h2>
                 <p className="mt-3 max-w-md text-sm leading-relaxed text-on-surface-variant sm:text-base">
@@ -654,7 +698,7 @@ export default function Landing() {
                     key={item.pregunta}
                     className="group rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4 open:bg-surface-container-lowest"
                   >
-                    <summary className="cursor-pointer list-none pr-8 text-sm font-bold text-primary marker:hidden">
+                    <summary className="cursor-pointer list-none pr-8 text-sm font-medium text-primary marker:hidden">
                       {item.pregunta}
                     </summary>
                     <p className="mt-3 text-sm leading-relaxed text-on-surface-variant">
@@ -667,35 +711,56 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="bg-primary text-white">
-          <div className="mx-auto flex max-w-7xl flex-col items-start gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between md:py-20">
-            <div>
-              <p className="text-sm font-semibold text-secondary-container">
-                Tu próximo turno
-              </p>
-              <h2 className="mt-2 max-w-2xl text-3xl font-extrabold tracking-[-0.035em] sm:text-4xl">
-                Creá tu cuenta y reservá tu primer turno.
-              </h2>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/70 sm:text-base">
-                Gestioná tus reservas y tu equipamiento desde cualquier
-                dispositivo.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/registro"
-                className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-5 py-3 text-sm font-bold text-primary transition hover:bg-secondary-container/90"
-              >
-                Crear cuenta
-                <Icono nombre="flecha" className="h-4 w-4" />
-              </Link>
+        <section className="relative overflow-hidden bg-primary text-white">
+          <Image
+            src="/img/hero.webp"
+            alt="Cancha de tenis del club"
+            fill
+            priority
+            sizes="100vw"
+            className="pointer-events-none object-cover object-center"
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(14,24,16,0.72)_0%,rgba(14,24,16,0.88)_100%)]" />
+
+          <div className="relative z-10 mx-auto flex min-h-[72vh] max-w-[1000px] flex-col items-center justify-center px-4 py-20 text-center sm:px-8 lg:py-28">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/35 px-3.5 py-1.5 text-xs font-medium text-white/85 backdrop-blur-sm transition duration-700 animate-in fade-in slide-in-from-bottom-3">
+              <span className="pulso-disponible h-1.5 w-1.5 rounded-full bg-secondary-container" />
+              Turnos reales, sin vueltas
+            </p>
+
+            <h1 className="mt-7 max-w-3xl font-display text-6xl leading-[1.05] tracking-tight text-white transition duration-700 delay-100 animate-in fade-in slide-in-from-bottom-4 sm:text-7xl xl:text-[6.2rem]">
+              Tu próximo partido empieza en{" "}
+              <em className="italic text-secondary-container">MatchPoint.</em>
+            </h1>
+
+            <p className="mt-6 max-w-xl text-base leading-relaxed text-white/80 transition duration-700 delay-150 animate-in fade-in slide-in-from-bottom-4 sm:text-lg">
+              Elegí disciplina, fecha y horario. Confirmá tu turno y sumá
+              equipamiento en la misma reserva.
+            </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 transition duration-700 delay-200 animate-in fade-in slide-in-from-bottom-4">
               <Link
                 href="/canchas"
-                className="inline-flex items-center gap-2 rounded-full border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full bg-secondary-container px-6 py-3 text-sm font-semibold text-primary transition hover:-translate-y-0.5 hover:bg-white"
               >
                 Ver disponibilidad
+                <Icono nombre="flecha" className="h-4 w-4" />
               </Link>
+              <a
+                href="#como-funciona"
+                className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/30 px-5 py-3 text-sm font-medium text-white backdrop-blur-sm transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Cómo funciona
+              </a>
             </div>
+
+            <p className="mt-6 flex items-center justify-center gap-2 text-sm text-white/75 transition duration-700 delay-300 animate-in fade-in">
+              <Icono
+                nombre="reloj"
+                className="h-4 w-4 text-secondary-container"
+              />
+              Todos los días de {APERTURA} a {CIERRE} hs
+            </p>
           </div>
         </section>
       </main>
@@ -704,13 +769,10 @@ export default function Landing() {
         id="horarios"
         className="scroll-mt-24 border-t border-white/10 bg-primary text-white"
       >
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-12 sm:grid-cols-2 sm:px-6 lg:grid-cols-3">
+        <div className="mx-auto grid max-w-[1400px] grid-cols-1 gap-10 px-4 py-12 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
           <div>
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary-container text-sm font-bold text-primary">
-                CD
-              </div>
-              <span className="font-bold">Club Deportivo</span>
+              <Marca tono="claro" conEnlace={false} />
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/70">
               Reservá tu cancha, sumá equipamiento y gestioná tus turnos en
@@ -722,35 +784,30 @@ export default function Landing() {
             <h2 className="text-sm font-semibold text-secondary-container">
               Horarios
             </h2>
-            <p className="mt-4 flex items-center gap-2 text-sm text-white/75">
-              <Icono nombre="reloj" className="h-4 w-4" />
+            <p className="mt-3 text-sm text-white/80">
               Todos los días de {APERTURA} a {CIERRE} hs
             </p>
-            <p className="mt-2 text-sm text-white/60">
-              Turnos de una hora, sin margen entre franjas.
+            <p className="mt-1 text-xs text-white/60">
+              Cancelaciones disponibles hasta 2 horas antes del turno.
             </p>
           </div>
 
           <div>
             <h2 className="text-sm font-semibold text-secondary-container">
-              Accesos
+              Secciones
             </h2>
-            <div className="mt-4 flex flex-col gap-2 text-sm text-white/75">
-              <Link href="/canchas" className="hover:text-white">
-                Ver disponibilidad
-              </Link>
-              <Link href="/login" className="hover:text-white">
-                Iniciar sesión
-              </Link>
-              <Link href="/registro" className="hover:text-white">
-                Crear cuenta
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="border-t border-white/10">
-          <div className="mx-auto max-w-7xl px-4 py-5 text-xs text-white/60 sm:px-6">
-            © 2026 Club Deportivo. Todos los derechos reservados.
+            <ul className="mt-3 space-y-2 text-sm text-white/80">
+              {LINKS_SECCION.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="transition hover:text-secondary-container"
+                  >
+                    {link.texto}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </footer>

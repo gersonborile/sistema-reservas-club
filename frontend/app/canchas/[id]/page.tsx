@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import DetalleCanchaClient from "./detalle-canchas-client";
 
 export const metadata: Metadata = {
-  title: "Detalle de cancha",
+  title: "Detalle de cancha · MatchPoint",
 };
 
 type Props = {

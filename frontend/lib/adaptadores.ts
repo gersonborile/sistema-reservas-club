@@ -179,6 +179,28 @@ export function aEquipamientoUI(item: EquipamientoApi): EquipamientoUI {
   };
 }
 
+/** Ajusta una cantidad al rango 1..stock; con stock 0 devuelve 0. */
+export function limitarCantidad(cantidad: number, stock: number): number {
+  const maximo = Math.max(0, Math.trunc(stock));
+  if (maximo === 0) return 0;
+  if (!Number.isFinite(cantidad)) return 1;
+  return Math.min(Math.max(1, Math.trunc(cantidad)), maximo);
+}
+
+/** Total previsto de un alquiler usando el precio unitario real del catálogo. */
+export function totalAlquilerPrevisto(
+  items: { equipamientoId: string; cantidad: number }[],
+  catalogo: { id: string; precioUnitario: number }[],
+): number {
+  const precios = new Map(
+    catalogo.map((item) => [item.id, Number(item.precioUnitario)] as const),
+  );
+  return items.reduce((total, item) => {
+    const precio = precios.get(item.equipamientoId) ?? 0;
+    return total + (Number.isFinite(precio) ? precio : 0) * item.cantidad;
+  }, 0);
+}
+
 export type FranjaUI = {
   id: string;
   hora: string;

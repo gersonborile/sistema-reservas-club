@@ -29,10 +29,10 @@ export default function RequiereSesion({
 
   if (!listo) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-        <div className="h-8 w-64 animate-pulse rounded-lg bg-slate-200" />
-        <div className="mt-4 h-4 w-80 max-w-full animate-pulse rounded bg-slate-100" />
-        <div className="mt-8 h-64 animate-pulse rounded-2xl bg-slate-100" />
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+        <div className="h-8 w-64 animate-pulse rounded-lg bg-surface-container" />
+        <div className="mt-4 h-4 w-80 max-w-full animate-pulse rounded bg-surface-container" />
+        <div className="mt-8 h-64 animate-pulse rounded-2xl bg-surface-container" />
       </div>
     );
   }

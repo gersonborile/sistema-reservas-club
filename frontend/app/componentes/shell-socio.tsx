@@ -9,7 +9,7 @@ export default function ShellSocio({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
+    <div className="flex min-h-screen flex-col bg-surface pb-[4.75rem] lg:pb-0">
       <Navbar />
       <main className="flex-1">{children}</main>
       <FooterSocio />

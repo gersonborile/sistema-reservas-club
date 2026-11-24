@@ -5,7 +5,7 @@ import { TarjetaAuth } from "@/app/componentes/auth";
 import { FormularioLogin } from "@/app/login/formulario-login";
 
 export const metadata: Metadata = {
-  title: "Iniciar sesión",
+  title: "Iniciar sesión · MatchPoint",
 };
 
 type Props = {
@@ -18,12 +18,13 @@ export default async function PaginaLogin({ searchParams }: Props) {
   return (
     <TarjetaAuth
       titulo="Iniciar sesión"
+      descripcion="Entrá para reservar tu próximo turno y gestionar tus reservas."
       pie={
-        <p className="text-slate-600">
+        <p>
           ¿No tenés cuenta?{" "}
           <Link
             href="/registro"
-            className="font-medium text-slate-900 underline decoration-slate-300 underline-offset-4 hover:decoration-slate-900"
+            className="font-bold text-secondary underline decoration-secondary/30 underline-offset-4 transition hover:decoration-secondary"
           >
             Registrate
           </Link>

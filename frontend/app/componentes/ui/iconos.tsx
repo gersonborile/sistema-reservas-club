@@ -16,6 +16,11 @@ export type NombreIcono =
   | "menu"
   | "cerrar"
   | "informacion"
+  | "home"
+  | "ticket"
+  | "salir"
+  | "chevron"
+  | "rayo"
   | "tenis"
   | "futbol"
   | "padel"
@@ -91,6 +96,28 @@ const TRAZOS: Record<NombreIcono, ReactNode> = {
       <path d="M12 11v5M12 8h.01" />
     </>
   ),
+  home: (
+    <>
+      <path d="m3 10 9-7 9 7" />
+      <path d="M5 9v11h14V9" />
+      <path d="M9.5 20v-6h5v6" />
+    </>
+  ),
+  ticket: (
+    <>
+      <path d="M4 7h16v3.2a2 2 0 0 0 0 3.6V17H4v-3.2a2 2 0 0 0 0-3.6V7Z" />
+      <path d="M14 7v10" strokeDasharray="2 2.5" />
+    </>
+  ),
+  salir: (
+    <>
+      <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
+      <path d="m9 8-4 4 4 4" />
+      <path d="M5 12h10" />
+    </>
+  ),
+  chevron: <path d="m6 9 6 6 6-6" />,
+  rayo: <path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" />,
   tenis: (
     <>
       <circle cx="12" cy="12" r="9" />

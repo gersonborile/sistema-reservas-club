@@ -56,7 +56,7 @@ export function PlaceholderDisciplina({ disciplina }: { disciplina: string }) {
   const deporte = deporteDeDisciplina(disciplina);
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,var(--secondary-soft)_0%,var(--surface-container-low)_48%,#d6ece1_100%)] text-secondary">
+    <div className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden bg-[linear-gradient(135deg,var(--secondary-soft)_0%,var(--surface-container-low)_48%,#e8efc9_100%)] text-secondary">
       <svg
         viewBox="0 0 400 240"
         className="absolute inset-0 h-full w-full text-secondary/15"
@@ -72,8 +72,11 @@ export function PlaceholderDisciplina({ disciplina }: { disciplina: string }) {
         <path d="M20 120h10M380 120h-10" />
       </svg>
       <div className="relative flex flex-col items-center gap-3 px-6 text-center">
-        <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-secondary/15 bg-white/70 shadow-sm backdrop-blur-sm">
-          <Icono nombre={deporte === "generico" ? "cancha" : deporte} className="h-8 w-8" />
+        <span className="flex h-16 w-16 items-center justify-center rounded-full border border-secondary/15 bg-white/70 shadow-sm backdrop-blur-sm">
+          <Icono
+            nombre={deporte === "generico" ? "cancha" : deporte}
+            className="h-8 w-8"
+          />
         </span>
         <span className="text-sm font-semibold text-secondary">
           {disciplina.trim() || "Cancha del club"}

@@ -42,19 +42,19 @@
 
 ## 7. Tanda B — Reservar
 
-- [ ] 7.1 Implementar stepper turno/equipamiento/confirmación y panel lateral de resumen; verificar con `npm run typecheck` y prueba manual.
-- [ ] 7.2 Mostrar equipamiento con stock y precio reales, límites de cantidad y total previsto; verificar que `POST /reservas/:id/alquiler` siga funcionando.
-- [ ] 7.3 Conservar `POST /reservas`, `409`, `400`, `401` y la navegación a Mis reservas; verificar con backend local y tests existentes.
-- [ ] 7.4 Agregar o ajustar tests de presentación/validación y verificar con `npm test`.
+- [x] 7.1 Implementar stepper turno/equipamiento/confirmación y panel lateral de resumen; verificar con `npm run typecheck` y prueba manual.
+- [x] 7.2 Mostrar equipamiento con stock y precio reales, límites de cantidad y total previsto; verificar que `POST /reservas/:id/alquiler` siga funcionando.
+- [x] 7.3 Conservar `POST /reservas`, `409`, `400`, `401` y la navegación a Mis reservas; verificar con backend local y tests existentes.
+- [x] 7.4 Agregar o ajustar tests de presentación/validación y verificar con `npm test`.
 
 ## 8. Tanda B — Home autenticada y Mis reservas
 
-- [ ] 8.1 Destacar la próxima reserva con imagen y fecha legible, accesos rápidos con imagen y canchas con turnos libres hoy; verificar contra la API local.
-- [ ] 8.2 Convertir Mis reservas en tarjetas con imagen, estado con color, fecha relativa y alquiler visible; verificar con reservas con y sin alquiler.
-- [ ] 8.3 Agregar cancelación con confirmación y toasts de resultado, conservando `PATCH /reservas/:id/cancelar` y el reintento de alquiler; verificar casos éxito y `409`.
-- [ ] 8.4 Agregar o ajustar tests de fechas/estado y verificar con `npm test`.
+- [x] 8.1 Destacar la próxima reserva con imagen y fecha legible, accesos rápidos con imagen y canchas con turnos libres hoy; verificar contra la API local.
+- [x] 8.2 Convertir Mis reservas en tarjetas con imagen, estado con color, fecha relativa y alquiler visible; verificar con reservas con y sin alquiler.
+- [x] 8.3 Agregar cancelación con confirmación y toasts de resultado, conservando `PATCH /reservas/:id/cancelar` y el reintento de alquiler; verificar casos éxito y `409`.
+- [x] 8.4 Agregar o ajustar tests de fechas/estado y verificar con `npm test`.
 
 ## 9. Cierre final
 
-- [ ] 9.1 Ejecutar `openspec validate --all --strict --no-interactive`, `npm run lint`, `npm run typecheck`, `npm test` y `npm run build`; registrar resultados completos.
-- [ ] 9.2 Revisar `git status`, `git diff --stat`, assets faltantes, pendientes y fuera de alcance; no commitear y esperar OK.
+- [x] 9.1 Ejecutar `openspec validate --all --strict --no-interactive`, `npm run lint`, `npm run typecheck`, `npm test` y `npm run build`; registrar resultados completos.
+- [x] 9.2 Revisar `git status`, `git diff --stat`, assets faltantes, pendientes y fuera de alcance; no commitear y esperar OK.
