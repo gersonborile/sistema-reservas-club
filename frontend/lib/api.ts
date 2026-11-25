@@ -4,6 +4,7 @@ import {
   guardarUsuario,
   leerToken,
 } from "@/lib/almacen-sesion";
+import { rutaLoginConRetorno } from "@/lib/navegacion";
 import { aRolFront } from "@/lib/tipos";
 import type {
   CampoInvalido,
@@ -19,6 +20,8 @@ export type EstadoCancha = "DISPONIBLE" | "OCUPADA" | "EN_MANTENIMIENTO";
 export type DisciplinaApi = {
   id: string;
   nombre: string;
+  duracionTipicaMinutos?: number | null;
+  reglas?: string | null;
 };
 
 export type CanchaApi = {
@@ -131,6 +134,8 @@ type OpcionesPeticion = {
   cuerpo?: unknown;
   /** `null` fuerza una petición sin token (por ejemplo, login). */
   token?: string | null;
+  /** Permite manejar el `401` sin navegar (por ejemplo, al refrescar perfil). */
+  redirigir401?: boolean;
 };
 
 function aUsuarioPublico(usuario: UsuarioApi): UsuarioPublico {
@@ -216,10 +221,15 @@ export async function peticion<T>(
 
   if (!respuesta.ok) {
     const cuerpo = await leerCuerpo(respuesta);
-    if (respuesta.status === 401 && token) {
+    if (
+      respuesta.status === 401 &&
+      token &&
+      opciones.redirigir401 !== false
+    ) {
       borrarSesion();
       if (typeof window !== "undefined") {
-        window.location.replace("/login");
+        const retorno = `${window.location.pathname}${window.location.search}`;
+        window.location.replace(rutaLoginConRetorno(retorno));
       }
     }
     throw new ApiError(
@@ -267,7 +277,7 @@ export async function iniciarSesion(
 /** GET /auth/perfil. Refresca el usuario guardado con los datos del backend. */
 export async function obtenerPerfil(): Promise<UsuarioPublico> {
   const usuario = aUsuarioPublico(
-    await peticion<UsuarioApi>("/auth/perfil"),
+    await peticion<UsuarioApi>("/auth/perfil", { redirigir401: false }),
   );
   guardarUsuario(usuario);
   return usuario;
@@ -368,6 +378,11 @@ export function obtenerTurnos(
   if (filtros.disciplinaId) params.set("disciplina_id", filtros.disciplinaId);
   if (filtros.fecha) params.set("fecha", filtros.fecha);
   return obtenerTodasLasPaginas<TurnoApi>("/turnos", params);
+}
+
+/** GET /turnos?fecha=: todos los turnos de una fecha, libres y ocupados. */
+export function obtenerTurnosDeFecha(fecha: string): Promise<TurnoApi[]> {
+  return obtenerTurnos({ fecha });
 }
 
 export type DatosTurno = {

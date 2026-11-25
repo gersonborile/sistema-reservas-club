@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 
@@ -135,10 +135,10 @@ export default function TarjetaEquipamiento({
   return (
     <section
       id="equipamiento"
-      className="rounded-lg border border-neutral-200 bg-white p-5"
+      className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm"
     >
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-neutral-900">
+        <h2 className="text-base font-semibold text-slate-900">
           Equipamiento
         </h2>
         <button
@@ -159,29 +159,29 @@ export default function TarjetaEquipamiento({
         <form
           onSubmit={guardarNuevo}
           noValidate
-          className="mb-4 rounded-lg border border-neutral-200 bg-neutral-50 p-4"
+          className="mb-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
         >
           <div className="flex flex-wrap items-start gap-3">
             <label className="min-w-[160px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Nombre
               </span>
               <input
                 value={nombreCrear}
                 onChange={(evento) => setNombreCrear(evento.target.value)}
                 placeholder="Nombre del equipamiento"
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
               />
               <ErrorDeCampo campos={camposCrear} campo="nombre" />
             </label>
             <label className="min-w-[140px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Disciplina
               </span>
               <select
                 value={disciplinaCrear}
                 onChange={(evento) => setDisciplinaCrear(evento.target.value)}
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
               >
                 {disciplinas.map((disciplina) => (
                   <option key={disciplina.id} value={disciplina.id}>
@@ -192,7 +192,7 @@ export default function TarjetaEquipamiento({
               <ErrorDeCampo campos={camposCrear} campo="disciplinaId" />
             </label>
             <label className="min-w-[100px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Stock total
               </span>
               <input
@@ -201,12 +201,12 @@ export default function TarjetaEquipamiento({
                 value={stockCrear}
                 onChange={(evento) => setStockCrear(evento.target.value)}
                 placeholder="12"
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
               />
               <ErrorDeCampo campos={camposCrear} campo="stockTotal" />
             </label>
             <label className="min-w-[120px] flex-1">
-              <span className="mb-1 block text-sm font-medium text-neutral-700">
+              <span className="mb-1 block text-sm font-medium text-slate-700">
                 Precio unitario
               </span>
               <input
@@ -216,7 +216,7 @@ export default function TarjetaEquipamiento({
                 value={precioCrear}
                 onChange={(evento) => setPrecioCrear(evento.target.value)}
                 placeholder="1500"
-                className="w-full rounded border border-neutral-300 px-3 py-2 text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
               />
               <ErrorDeCampo campos={camposCrear} campo="precioUnitario" />
             </label>
@@ -251,7 +251,7 @@ export default function TarjetaEquipamiento({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-neutral-200 text-xs uppercase tracking-wide text-neutral-500">
+            <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2 pr-2 font-medium">Nombre</th>
               <th className="py-2 pr-2 font-medium">Disciplina</th>
               <th className="py-2 pr-2 font-medium">Stock total</th>
@@ -261,17 +261,17 @@ export default function TarjetaEquipamiento({
           </thead>
           <tbody>
             {equipamiento.map((item) => (
-              <tr key={item.id} className="border-b border-neutral-200">
-                <td className="py-3 pr-2 font-bold text-neutral-900">
+              <tr key={item.id} className="border-b border-slate-100">
+                <td className="py-3 pr-2 font-bold text-slate-900">
                   {item.nombre}
                 </td>
-                <td className="py-3 pr-2 text-neutral-700">
+                <td className="py-3 pr-2 text-slate-700">
                   {aEtiquetaDisciplina(item.disciplinaNombre)}
                 </td>
-                <td className="py-3 pr-2 text-neutral-700">
+                <td className="py-3 pr-2 text-slate-700">
                   {item.stockTotal} en stock
                 </td>
-                <td className="py-3 pr-2 text-neutral-700">
+                <td className="py-3 pr-2 text-slate-700">
                   $ {item.precioUnitario.toLocaleString("es-AR")}
                 </td>
                 <td className="py-3">
@@ -290,7 +290,7 @@ export default function TarjetaEquipamiento({
                             setValorEnEdicion(evento.target.value)
                           }
                           aria-label={`Stock total de ${item.nombre}`}
-                          className="w-24 rounded border border-neutral-300 px-3 py-1.5 text-right text-sm text-neutral-900 outline-none focus:border-neutral-900"
+                          className="w-24 rounded-xl border border-slate-200 px-3 py-1.5 text-right text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10"
                         />
                         {errorEdicion ? (
                           <p
@@ -346,3 +346,4 @@ export default function TarjetaEquipamiento({
     </section>
   );
 }
+

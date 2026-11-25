@@ -2,10 +2,10 @@ import { ApiError } from "@/lib/api";
 import type { CampoInvalido } from "@/lib/tipos";
 
 export const ESTILOS_BOTON_SECUNDARIO =
-  "rounded border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50";
+  "rounded-xl border border-slate-200 bg-white px-3.5 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:bg-slate-50";
 
 export const ESTILOS_BOTON_SECUNDARIO_DESHABILITADO =
-  "cursor-not-allowed rounded border border-neutral-200 bg-neutral-100 px-3 py-1.5 text-sm font-medium text-neutral-400";
+  "cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-1.5 text-sm font-medium text-slate-400";
 
 export function estilosBotonSecundario(deshabilitado: boolean): string {
   return deshabilitado
@@ -24,13 +24,13 @@ export function ErrorConReintento({
   onReintentar: () => void;
 }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
       <p className="text-sm text-red-600">{mensaje}</p>
       <button
         type="button"
         onClick={onReintentar}
         disabled={reintentando}
-        className={`mt-3 ${estilosBotonPrincipal(reintentando)}`}
+        className={`mt-4 ${estilosBotonPrincipal(reintentando)}`}
       >
         {reintentando ? "Reintentando..." : "Reintentar"}
       </button>
@@ -39,10 +39,10 @@ export function ErrorConReintento({
 }
 
 export function estilosBotonPrincipal(deshabilitado: boolean): string {
-  return `rounded px-4 py-2 text-sm font-medium ${
+  return `rounded-xl px-4 py-2 text-sm font-medium transition ${
     deshabilitado
-      ? "cursor-not-allowed bg-neutral-400 text-white"
-      : "bg-neutral-900 text-white hover:bg-neutral-800"
+      ? "cursor-not-allowed bg-slate-300 text-white"
+      : "bg-slate-900 text-white hover:bg-slate-800"
   }`;
 }
 
@@ -70,7 +70,7 @@ export function ErrorDeCampo({
 }
 
 export const CLASES_CONTROL =
-  "h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100";
+  "h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 disabled:bg-slate-50 disabled:text-slate-500";
 
 /** Campo de formulario con su etiqueta asociada al control por `id`. */
 export function Campo({
@@ -83,10 +83,10 @@ export function Campo({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-1 flex-col gap-1">
+    <div className="flex flex-1 flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="text-[10px] uppercase tracking-wide text-neutral-500"
+        className="text-xs font-medium uppercase tracking-wide text-slate-500"
       >
         {etiqueta}
       </label>
@@ -112,7 +112,7 @@ export function CampoSoloLectura({
         type="text"
         value={valor}
         readOnly
-        className="h-9 rounded border border-neutral-300 bg-neutral-100 px-2 text-sm text-neutral-600"
+        className="h-10 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-600"
       />
     </Campo>
   );

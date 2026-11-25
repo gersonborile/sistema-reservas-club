@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -126,13 +126,13 @@ export default function SeccionPago({
   }
 
   return (
-    <section className="flex flex-col gap-3 border-t border-neutral-200 pt-4">
-      <h3 className="text-[10px] uppercase tracking-wide text-neutral-500">
+    <section className="flex flex-col gap-3 border-t border-slate-100 pt-4">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         Pago
       </h3>
 
       {cargandoPago ? (
-        <p className="text-sm text-neutral-500">Cargando pago...</p>
+        <p className="text-sm text-slate-500">Cargando pago...</p>
       ) : errorPago ? (
         <div className="flex flex-col gap-2">
           <p className="text-sm text-red-600">{errorPago}</p>
@@ -147,42 +147,42 @@ export default function SeccionPago({
       ) : pago ? (
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-500">Estado</span>
+            <span className="text-slate-500">Estado</span>
             <InsigniaEstadoPago estado={pago.estado} />
           </div>
           <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-            <dt className="text-neutral-500">Monto</dt>
-            <dd className="text-neutral-900">${pago.monto}</dd>
-            <dt className="text-neutral-500">Método</dt>
-            <dd className="text-neutral-900">
+            <dt className="text-slate-500">Monto</dt>
+            <dd className="text-slate-900">${pago.monto}</dd>
+            <dt className="text-slate-500">Método</dt>
+            <dd className="text-slate-900">
               {ETIQUETAS_METODO[pago.metodoPago]}
             </dd>
             {pago.fechaPago ? (
               <>
-                <dt className="text-neutral-500">Fecha de pago</dt>
-                <dd className="text-neutral-900">
+                <dt className="text-slate-500">Fecha de pago</dt>
+                <dd className="text-slate-900">
                   {formatearFecha(pago.fechaPago.slice(0, 10))}
                 </dd>
               </>
             ) : null}
           </dl>
           {pago.estado === "ANULADO" ? (
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-slate-500">
               Pago anulado: solo lectura.
             </p>
           ) : null}
         </div>
       ) : (
-        <p className="text-sm text-neutral-500">Sin pago registrado.</p>
+        <p className="text-sm text-slate-500">Sin pago registrado.</p>
       )}
 
       {acciones.includes("registrar") ? (
-        <div className="flex flex-col gap-3 rounded border border-neutral-300 p-3">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4">
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1">
               <label
                 htmlFor="monto"
-                className="text-[10px] uppercase tracking-wide text-neutral-500"
+                className="text-xs font-semibold uppercase tracking-wider text-slate-500"
               >
                 Monto
               </label>
@@ -194,13 +194,13 @@ export default function SeccionPago({
                 value={monto}
                 onChange={(e) => setMonto(e.target.value)}
                 disabled={bloqueado}
-                className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100"
+                className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-slate-900 disabled:bg-neutral-100"
               />
             </div>
             <div className="flex flex-1 flex-col gap-1">
               <label
                 htmlFor="metodo"
-                className="text-[10px] uppercase tracking-wide text-neutral-500"
+                className="text-xs font-semibold uppercase tracking-wider text-slate-500"
               >
                 Método
               </label>
@@ -209,7 +209,7 @@ export default function SeccionPago({
                 value={metodo}
                 onChange={(e) => setMetodo(e.target.value as MetodoPago)}
                 disabled={bloqueado}
-                className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100"
+                className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-slate-900 disabled:bg-neutral-100"
               >
                 <option value="EFECTIVO">Efectivo</option>
                 <option value="TRANSFERENCIA">Transferencia</option>
@@ -217,7 +217,7 @@ export default function SeccionPago({
               </select>
             </div>
           </div>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs text-slate-500">
             Monto sugerido por el alquiler; podés editarlo.
           </p>
           <button
@@ -259,7 +259,7 @@ export default function SeccionPago({
       {errorAccion ? (
         <div
           role="alert"
-          className="rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-red-600"
+          className="rounded-xl border border-red-200/80 bg-red-50 p-3 text-sm text-red-600"
         >
           {errorAccion}
         </div>
@@ -267,3 +267,4 @@ export default function SeccionPago({
     </section>
   );
 }
+

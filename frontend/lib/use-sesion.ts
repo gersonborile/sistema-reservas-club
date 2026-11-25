@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { obtenerPerfil } from "@/lib/api";
-import { leerClaims, leerToken, leerUsuario } from "@/lib/sesion";
+import { ApiError, obtenerPerfil } from "@/lib/api";
+import { borrarSesion, leerClaims, leerToken, leerUsuario } from "@/lib/sesion";
 import type { SesionEnToken, UsuarioPublico } from "@/lib/tipos";
 
 type EstadoSesion = {
@@ -43,7 +43,7 @@ type OpcionesSesion = {
  * Lee la sesión del navegador. Si no hay token (y `redirigirSinSesion` está
  * activo), el token es ilegible o venció, navega a `/login`. Si hay token
  * válido pero no hay usuario guardado, lo recupera una vez con
- * `obtenerPerfil()`; un `401` en esa llamada lo maneja `peticion`.
+ * `obtenerPerfil()`. Un `401` invalida la sesión guardada.
  */
 export function useSesion({
   redirigirSinSesion = true,
@@ -53,6 +53,16 @@ export function useSesion({
 
   useEffect(() => {
     let activo = true;
+
+    function invalidarSesion(error: unknown): boolean {
+      if (!(error instanceof ApiError) || error.status !== 401) return false;
+      borrarSesion();
+      if (activo) {
+        setEstado({ cargando: false, claims: null, usuario: null });
+      }
+      if (redirigirSinSesion) router.replace("/login");
+      return true;
+    }
 
     async function cargar() {
       const token = leerToken();
@@ -72,6 +82,17 @@ export function useSesion({
         if (activo) {
           setEstado({ cargando: false, claims, usuario: guardado });
         }
+        // Refresca en segundo plano sin bloquear el saludo ni la navegación.
+        void cargarPerfil()
+          .then((usuario) => {
+            if (activo) {
+              setEstado({ cargando: false, claims, usuario });
+            }
+          })
+          .catch((error) => {
+            // Si el refresco falla por red se conserva el usuario guardado.
+            invalidarSesion(error);
+          });
         return;
       }
 
@@ -80,7 +101,8 @@ export function useSesion({
         if (activo) {
           setEstado({ cargando: false, claims, usuario });
         }
-      } catch {
+      } catch (error) {
+        if (invalidarSesion(error)) return;
         if (activo) {
           setEstado({ cargando: false, claims, usuario: null });
         }

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import InicioClient from "./inicio-client";
 
 export const metadata: Metadata = {
-  title: "Club Deportivo",
+  title: "MatchPoint · Inicio",
 };
 
 export default function PaginaRaiz() {

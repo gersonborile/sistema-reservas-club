@@ -179,6 +179,28 @@ export function aEquipamientoUI(item: EquipamientoApi): EquipamientoUI {
   };
 }
 
+/** Ajusta una cantidad al rango 1..stock; con stock 0 devuelve 0. */
+export function limitarCantidad(cantidad: number, stock: number): number {
+  const maximo = Math.max(0, Math.trunc(stock));
+  if (maximo === 0) return 0;
+  if (!Number.isFinite(cantidad)) return 1;
+  return Math.min(Math.max(1, Math.trunc(cantidad)), maximo);
+}
+
+/** Total previsto de un alquiler usando el precio unitario real del catálogo. */
+export function totalAlquilerPrevisto(
+  items: { equipamientoId: string; cantidad: number }[],
+  catalogo: { id: string; precioUnitario: number }[],
+): number {
+  const precios = new Map(
+    catalogo.map((item) => [item.id, Number(item.precioUnitario)] as const),
+  );
+  return items.reduce((total, item) => {
+    const precio = precios.get(item.equipamientoId) ?? 0;
+    return total + (Number.isFinite(precio) ? precio : 0) * item.cantidad;
+  }, 0);
+}
+
 export type FranjaUI = {
   id: string;
   hora: string;
@@ -186,8 +208,34 @@ export type FranjaUI = {
 };
 
 export function aEtiquetaDisciplina(nombre: string): string {
-  if (!nombre) return nombre;
-  return nombre.charAt(0).toUpperCase() + nombre.slice(1);
+  const limpio = nombre.trim();
+  if (!limpio) return limpio;
+  return limpio
+    .split(/\s+/)
+    .map((parte) => parte.charAt(0).toUpperCase() + parte.slice(1))
+    .join(" ");
+}
+
+/** Descripción de una disciplina usando solo datos públicos del backend. */
+export function descripcionDisciplina(disciplina: DisciplinaApi): string {
+  if (disciplina.reglas?.trim()) return disciplina.reglas.trim();
+  if (
+    typeof disciplina.duracionTipicaMinutos === "number" &&
+    disciplina.duracionTipicaMinutos > 0
+  ) {
+    return `Turnos de ${disciplina.duracionTipicaMinutos} minutos.`;
+  }
+  return "Consultá los turnos disponibles.";
+}
+
+const ETIQUETAS_ESTADO_CANCHA: Record<EstadoCancha, string> = {
+  DISPONIBLE: "Disponible",
+  OCUPADA: "Ocupada",
+  EN_MANTENIMIENTO: "En mantenimiento",
+};
+
+export function etiquetaEstadoCancha(estado: EstadoCancha): string {
+  return ETIQUETAS_ESTADO_CANCHA[estado];
 }
 
 export function aCanchaUI(cancha: CanchaApi): CanchaUI {
@@ -279,6 +327,57 @@ export function aFranjaUI(turno: TurnoApi): FranjaUI {
     hora: turno.hora_inicio,
     ocupada: !turno.disponible,
   };
+}
+
+function porHoraInicio(a: TurnoApi, b: TurnoApi): number {
+  return a.hora_inicio.localeCompare(b.hora_inicio);
+}
+
+/** Turnos agrupados por cancha, ordenados por hora de inicio. */
+export function agruparTurnosPorCancha(
+  turnos: TurnoApi[],
+): Record<string, TurnoApi[]> {
+  const agrupados: Record<string, TurnoApi[]> = {};
+  for (const turno of turnos) {
+    const lista = agrupados[turno.cancha_id] ?? [];
+    lista.push(turno);
+    agrupados[turno.cancha_id] = lista;
+  }
+  for (const lista of Object.values(agrupados)) {
+    lista.sort(porHoraInicio);
+  }
+  return agrupados;
+}
+
+/** Turnos disponibles cuya hora de inicio es igual o posterior a `desde`. */
+export function turnosLibresDesde(
+  turnos: TurnoApi[],
+  desde: string,
+): TurnoApi[] {
+  const limite = desde.slice(0, 5);
+  return turnos
+    .filter(
+      (turno) =>
+        turno.disponible && turno.hora_inicio.slice(0, 5) >= limite,
+    )
+    .sort(porHoraInicio);
+}
+
+/** Cantidad de turnos libres por id de disciplina. */
+export function contarTurnosLibresPorDisciplina(
+  turnos: TurnoApi[],
+): Record<string, number> {
+  const conteo: Record<string, number> = {};
+  for (const turno of turnos) {
+    if (!turno.disponible) continue;
+    conteo[turno.disciplina_id] = (conteo[turno.disciplina_id] ?? 0) + 1;
+  }
+  return conteo;
+}
+
+/** Primer turno libre de una lista ya ordenada por hora. */
+export function proximoTurnoLibre(turnos: TurnoApi[]): TurnoApi | null {
+  return turnos.filter((turno) => turno.disponible).sort(porHoraInicio)[0] ?? null;
 }
 
 /** Primer turno libre cuyo hora_fin es posterior a la hora actual ("HH:MM"). */

@@ -1,15 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --surface: #f2efe6;
+  --surface-container-lowest: #fbfaf5;
+  --surface-container-low: #f8f5ec;
+  --surface-container: #e6e2d5;
+  --surface-container-high: #d9d5c7;
+  --primary: #101911;
+  --primary-soft: #1d3324;
+  --secondary: #1e5b3d;
+  --secondary-soft: #e3ebda;
+  --secondary-container: #d0e60f;
+  --accent: #d0e60f;
+  --on-surface: #172118;
+  --on-surface-variant: #596157;
+  --outline: #7a8274;
+  --outline-variant: #d5d0c1;
+  --danger: #a33b2c;
+  --danger-container: #f9e8e4;
+  --on-danger-container: #6f241a;
+  --warning: #8a5a12;
+  --warning-container: #fbf0d8;
+  --on-warning-container: #6c470b;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-primary: var(--primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-soft: var(--secondary-soft);
+  --color-secondary-container: var(--secondary-container);
+  --color-accent: var(--accent);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-danger: var(--danger);
+  --color-danger-container: var(--danger-container);
+  --color-on-danger-container: var(--on-danger-container);
+  --color-warning: var(--warning);
+  --color-warning-container: var(--warning-container);
+  --color-on-warning-container: var(--on-warning-container);
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  h1 {
+    line-height: 1.05;
+  }
+
+  h2 {
+    line-height: 1.08;
+  }
+
+  h3 {
+    line-height: 1.15;
+  }
+}
+
+/* Outfit para títulos y marca. */
+@layer components {
+  .font-display {
+    font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+  }
 }
 
 html {
@@ -17,6 +85,126 @@ html {
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui,
+    -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--secondary-container);
+  color: var(--primary);
+}
+
+*:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+/* Tarjetas elevadas: papel, borde cálido y sombra de cancha. */
+.tarjeta-elevada {
+  background: var(--surface-container-lowest);
+  border: 1px solid color-mix(in srgb, var(--outline-variant) 78%, transparent);
+  box-shadow:
+    0 1px 2px rgba(16, 25, 17, 0.04),
+    0 18px 44px -30px rgba(16, 25, 17, 0.32);
+}
+
+/* Grilla de cancha tenue para paneles oscuros y cabeceras. */
+.fondo-lineas-cancha {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Franja horizontal de fechas sin barra de scroll visible. */
+.sin-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.sin-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Muescas del boleto: dos recortes que marcan el talón de la reserva. */
+.muesca-boleto {
+  position: absolute;
+  z-index: 1;
+  height: 1.1rem;
+  width: 1.1rem;
+  border-radius: 9999px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--outline-variant) 70%, transparent);
+}
+
+@keyframes toast-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toast-entrada {
+  animation: toast-entrada 180ms ease-out both;
+}
+
+@keyframes pulso-disponible {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.8);
+  }
+}
+
+.pulso-disponible {
+  animation: pulso-disponible 2.4s ease-in-out infinite;
+}
+
+/* Aparición suave de secciones al deslizar. */
+[data-animar] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+[data-animar].esta-visible {
+  opacity: 1;
+  transform: translateY(0);
+  will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  [data-animar],
+  [data-animar].esta-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

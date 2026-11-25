@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -56,13 +56,13 @@ function etiquetaCancha(cancha: CanchaUI): string {
 function InsigniaEstadoTurno({ estado }: { estado: TurnoUI["estado"] }) {
   if (estado === "ocupado") {
     return (
-      <span className="inline-block rounded border border-neutral-800 bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-800">
+      <span className="inline-block rounded-xl border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-800">
         Ocupado
       </span>
     );
   }
   return (
-    <span className="inline-block rounded border border-neutral-800 bg-white px-2 py-0.5 text-xs font-medium text-neutral-800">
+    <span className="inline-block rounded-xl border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-800">
       Libre
     </span>
   );
@@ -264,13 +264,13 @@ export default function TurnosClient() {
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-neutral-900">Turnos y franjas</h1>
+        <h1 className="text-xl font-bold text-slate-900">Turnos y franjas</h1>
       </div>
 
       {aviso ? (
         <div
           role="alert"
-          className="flex items-center gap-3 rounded border border-neutral-800 bg-neutral-100 p-3 text-sm text-neutral-900"
+          className="flex items-center gap-3 rounded-xl border border-amber-200/80 bg-amber-50 p-3 text-sm text-amber-900"
         >
           <span className="flex-1">{aviso}</span>
           <button
@@ -283,11 +283,11 @@ export default function TurnosClient() {
         </div>
       ) : null}
 
-      <div className="flex flex-wrap items-end gap-4 rounded-lg border border-neutral-300 bg-white p-4">
+      <div className="flex flex-wrap items-end gap-4 rounded-2xl border border-slate-200/80 bg-white shadow-sm p-4">
         <div className="flex w-60 flex-col gap-1">
           <label
             htmlFor="cancha"
-            className="text-[10px] uppercase tracking-wide text-neutral-500"
+            className="text-[10px] uppercase tracking-wide text-slate-500"
           >
             Cancha
           </label>
@@ -296,7 +296,7 @@ export default function TurnosClient() {
             value={canchaSeleccionada}
             onChange={(e) => setCanchaId(e.target.value)}
             disabled={ocupado || cargandoCanchas || canchas.length === 0}
-            className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100"
+            className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-900 disabled:bg-slate-50"
           >
             {canchas.length === 0 ? <option value="">Sin canchas</option> : null}
             {canchas.map((cancha) => (
@@ -309,7 +309,7 @@ export default function TurnosClient() {
         <div className="flex w-44 flex-col gap-1">
           <label
             htmlFor="fecha"
-            className="text-[10px] uppercase tracking-wide text-neutral-500"
+            className="text-[10px] uppercase tracking-wide text-slate-500"
           >
             Fecha
           </label>
@@ -319,7 +319,7 @@ export default function TurnosClient() {
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
             disabled={ocupado}
-            className="h-9 rounded border border-neutral-300 bg-white px-2 text-sm text-neutral-900 disabled:bg-neutral-100"
+            className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-900 disabled:bg-slate-50"
           />
         </div>
         <div className="flex-1" />
@@ -346,7 +346,7 @@ export default function TurnosClient() {
       </div>
 
       {cargandoCanchas ? (
-        <p className="text-sm text-neutral-500">Cargando canchas...</p>
+        <p className="text-sm text-slate-500">Cargando canchas...</p>
       ) : errorCanchas ? (
         <ErrorConReintento
           mensaje={errorCanchas}
@@ -354,15 +354,15 @@ export default function TurnosClient() {
           onReintentar={() => setIntentoCanchas((n) => n + 1)}
         />
       ) : !canchaSeleccionada ? (
-        <div className="rounded-lg border border-neutral-200 bg-white px-6 py-12 text-center text-sm text-neutral-500">
+        <div className="rounded-lg border border-slate-100 bg-white px-6 py-12 text-center text-sm text-slate-500">
           No hay canchas disponibles.
         </div>
       ) : !hayFecha ? (
-        <div className="rounded-lg border border-neutral-200 bg-white px-6 py-12 text-center text-sm text-neutral-500">
+        <div className="rounded-lg border border-slate-100 bg-white px-6 py-12 text-center text-sm text-slate-500">
           Elegí una fecha.
         </div>
       ) : cargandoTurnos ? (
-        <p className="text-sm text-neutral-500">Cargando turnos...</p>
+        <p className="text-sm text-slate-500">Cargando turnos...</p>
       ) : errorTurnos ? (
         <ErrorConReintento
           mensaje={errorTurnos}
@@ -370,8 +370,8 @@ export default function TurnosClient() {
           onReintentar={() => setIntento((n) => n + 1)}
         />
       ) : turnos.length === 0 ? (
-        <div className="flex flex-col items-center gap-4 rounded-lg border border-neutral-300 bg-white px-6 py-16">
-          <p className="text-sm font-bold text-neutral-900">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-slate-200/80 bg-white shadow-sm px-6 py-16">
+          <p className="text-sm font-bold text-slate-900">
             No hay turnos para esta fecha.
           </p>
           <button
@@ -384,10 +384,10 @@ export default function TurnosClient() {
           </button>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-neutral-300 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200/80 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-neutral-300 text-[10px] uppercase tracking-wide text-neutral-500">
+              <tr className="border-b border-slate-200 text-[10px] uppercase tracking-wide text-slate-500">
                 <th className="w-36 px-4 py-2 font-medium">Hora inicio</th>
                 <th className="w-36 px-4 py-2 font-medium">Hora fin</th>
                 <th className="w-52 px-4 py-2 font-medium">Disciplina</th>
@@ -401,13 +401,13 @@ export default function TurnosClient() {
                   key={turno.id}
                   className="border-b border-neutral-100 last:border-b-0"
                 >
-                  <td className="px-4 py-3 text-neutral-900">
+                  <td className="px-4 py-3 text-slate-900">
                     {turno.horaInicio}
                   </td>
-                  <td className="px-4 py-3 text-neutral-900">
+                  <td className="px-4 py-3 text-slate-900">
                     {turno.horaFin}
                   </td>
-                  <td className="px-4 py-3 text-neutral-900">
+                  <td className="px-4 py-3 text-slate-900">
                     {nombresDisciplinas[turno.disciplinaId] ??
                       turno.disciplinaId}
                   </td>
@@ -442,7 +442,7 @@ export default function TurnosClient() {
             </tbody>
           </table>
           {actualizandoTurnos ? (
-            <p className="border-t border-neutral-100 px-4 py-2 text-xs text-neutral-500">
+            <p className="border-t border-neutral-100 px-4 py-2 text-xs text-slate-500">
               Actualizando...
             </p>
           ) : null}
@@ -480,3 +480,4 @@ export default function TurnosClient() {
     </div>
   );
 }
+
